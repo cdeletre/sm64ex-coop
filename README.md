@@ -79,6 +79,22 @@ To get you started, I've confirmed my fork to work on the following operating sy
 
 There are some bugs when running on them, but I've fixed just enough to get `sm64ex-coop` to compile, launch and host servers with mods in a playable state on them. On OpenBSD and FreeBSD, to build, I install `pkg-config` and temporarily symlink `make` to `gmake`, `gcc` to `clang`, `g++` to `clang++`, and `cpp` to `clang-cpp`. On postmarketOS, I use `clang` and install `bsd-compat-headers`. I strongly suspect that if your device has a non-`amd64` architecture and you find bugs, you'll probably want to look through my "`__ANDROID__`" `#ifdef`s in the code and check whether the code I've placed in them turns out to be architecture-related rather than Android-related.
 
+## How to get this mode
+![Screenshot_20231028-102901_Termux_X11](https://github.com/robertkirkman/sm64ex-coop/assets/31490854/166e8569-634e-454a-b271-a2d9dffae294)
+> Build on Android for X11 windowing backend and launch in [Termux:X11](https://github.com/termux/termux-x11). Use your preferred Termux:X11 graphics driver(s); `virglrenderer-android` shown as example.
+```
+pkg install x11-repo
+pkg install git wget make python getconf zip clang binutils sdl2 zlib libglvnd-dev termux-x11-nightly xfce virglrenderer-android
+pkg remove which # having which installed selects SurfaceFlinger windowing backend, and not having it installed selects X11 windowing backend. sorry for this insanity. also remember to uninstall libglvnd anytime you build for SurfaceFlinger windowing backend.
+git clone --recursive https://github.com/robertkirkman/sm64ex-coop.git
+cp /path/to/baserom.us.z64 sm64ex-coop/baserom.us.z64
+cd sm64ex-coop
+USE_GLES=1 TOUCH_CONTROLS=1 NO_PIE=0 make
+virgl_test_server_android &
+termux-x11 :0 -xstartup "xfce4-session" &
+DISPLAY=:0 GALLIUM_DRIVER=virpipe build/us_pc/sm64.us.f3dex2e
+```
+
 ## How to Play on Windows
 
 [Instructions on how to play are available on the wiki.](https://github.com/djoslin0/sm64ex-coop/wiki/How-to-Play)
