@@ -1,7 +1,7 @@
 #ifndef DEBUGLOG_H
 #define DEBUGLOG_H
 
-#ifdef __ANDROID__
+#ifdef TARGET_ANDROID
 #include <android/log.h>
 #define printf(...) __android_log_print(ANDROID_LOG_DEBUG, "sm64ex-coop", __VA_ARGS__)
 #endif

@@ -209,7 +209,7 @@ void mods_refresh_local(void) {
     // load mods
     if (hasUserPath) { mods_load(&gLocalMods, userModPath); }
 
-#ifdef __ANDROID__
+#ifdef TARGET_ANDROID
     // Android does not allow read access to the true executable path without root, so load mods
     // from the path I have chosen for my Android app as a replacement for the
     // "relative to executable" mods folder found on Windows, MacOS and Linux distros that have

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef __ANDROID__
+#ifdef TARGET_ANDROID
 #include <sys/stat.h>
 #include "platform.h"
 #endif
@@ -36,7 +36,9 @@
 #include "configfile.h"
 #include "controller/controller_api.h"
 #include "controller/controller_keyboard.h"
+#ifdef TOUCH_CONTROLS
 #include "controller/controller_touchscreen.h"
+#endif
 #include "fs/fs.h"
 
 #include "game/display.h" // for gGlobalTimer
@@ -297,7 +299,7 @@ void inthand(UNUSED int signum) {
 }
 
 void main_func(void) {
-#ifdef __ANDROID__
+#ifdef TARGET_ANDROID
     char gamedir[SYS_MAX_PATH] = { 0 };
     const char *basedir = get_gamedir();
     snprintf(gamedir, sizeof(gamedir), "%s/%s", 
@@ -462,7 +464,7 @@ void main_func(void) {
 // worked in Android before and doesn't now, but it has started to not work,
 // possibly because the Android NDK is stripping or mangling main(), 
 // so I've switched it to SDL_main 
-#ifdef __ANDROID__
+#ifdef TARGET_ANDROID
 int SDL_main(int argc, char *argv[]) {
 #else
 int main(int argc, char *argv[]) {

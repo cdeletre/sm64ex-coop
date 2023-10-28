@@ -59,10 +59,10 @@ What doesn't work:
 
 ## How to Play on any open-source UNIX-like OS
 
-This repository also contains changes meant to make porting `sm64ex-coop` to open-source UNIX-like operating systems easier (the normal `sm64ex-coop` only supports GNU/Linux and MacOS at the exclusion of others). On many of them, setting up the dependencies (a C and C++ preprocessor and compiler, GNU Make, readline, binutils, Python 3, SDL2, GLEW, an OpenGL or OpenGL ES graphics driver, and an X11-compatible display server) can take many steps that vary dramatically, so I've decided not to make a complete walkthrough for every single one like I have for Android. Once you have all of those configured just right, though, you'll be able to compile and play this way, and hopefully you'll only need to make minor adjustments to the `Makefile` to detect the dependencies the way your OS needs it to.
+This repository also contains changes meant to make porting `sm64ex-coop` to open-source UNIX-like operating systems easier (the normal `sm64ex-coop` only supports GNU/Linux and MacOS at the exclusion of others). On many of them, setting up the dependencies (a C and C++ preprocessor and compiler, GNU Make, readline, binutils, libcurl, Python 3, SDL2, GLEW, an OpenGL or OpenGL ES graphics driver, and an SDL2-compatible display server) can take many steps that vary dramatically, so I've decided not to make a complete walkthrough for every single one like I have for Android. Once you have all of those configured just right, though, you'll be able to compile and play this way, and hopefully you'll only need to make minor adjustments to the `Makefile` to detect the dependencies the way your OS needs it to.
 
 ```
-git clone https://github.com/robertkirkman/sm64ex-coop.git
+git clone --recursive https://github.com/robertkirkman/sm64ex-coop.git
 cp /path/to/baserom.us.z64 sm64ex-coop/baserom.us.z64
 cd sm64ex-coop
 TOUCH_CONTROLS=1 make
@@ -77,7 +77,7 @@ To get you started, I've confirmed my fork to work on the following operating sy
 
 ✅ OpenBSD
 
-There are some bugs when running on them, but I've fixed just enough to get `sm64ex-coop` to compile, launch and host servers with mods in a playable state on them. On OpenBSD and FreeBSD, to build, I install `pkg-config` and temporarily symlink `make` to `gmake`, `gcc` to `clang`, `g++` to `clang++`, and `cpp` to `clang-cpp`. I strongly suspect that if your device has a non-`amd64` architecture and you find bugs, you'll probably want to look through my "`__ANDROID__`" `#ifdef`s in the code and check whether the code I've placed in them turns out to be architecture-related rather than Android-related.
+There are some bugs when running on them, but I've fixed just enough to get `sm64ex-coop` to compile, launch and host servers with mods in a playable state on them. On OpenBSD and FreeBSD, to build, I install `pkg-config` and temporarily symlink `make` to `gmake`, `gcc` to `clang`, `g++` to `clang++`, and `cpp` to `clang-cpp`. On postmarketOS, I use `clang` and install `bsd-compat-headers`. I strongly suspect that if your device has a non-`amd64` architecture and you find bugs, you'll probably want to look through my "`__ANDROID__`" `#ifdef`s in the code and check whether the code I've placed in them turns out to be architecture-related rather than Android-related.
 
 ## How to Play on Windows
 

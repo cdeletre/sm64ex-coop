@@ -33,8 +33,11 @@ TARGET_BBB ?= 0
 # Disable linking to BASS and enable building Lua, coopnet and libjuice from source
 TARGET_FOSS ?= 1
 
-# Build for Android
+# Build for Android with SurfaceFlinger windowing backend
 TARGET_ANDROID ?= 0
+
+# Use OpenGL ES instead of OpenGL
+USE_GLES ?= 0
 
 # Build for BSD
 TARGET_BSD ?= 0
@@ -396,10 +399,12 @@ endif
 # Check for certain target types.
 
 ifeq ($(TARGET_RPI),1) # Define RPi to change SDL2 title & GLES2 hints
-     DEFINES += USE_GLES=1
+  DEFINES += USE_GLES=1
 else ifeq ($(TARGET_ANDROID),1)
   DEFINES += TARGET_ANDROID=1 USE_GLES=1 _LANGUAGE_C=1
 else ifeq ($(TARGET_BBB),1)
+  DEFINES += USE_GLES=1
+else ifeq ($(USE_GLES),1)
   DEFINES += USE_GLES=1
 endif
 
@@ -927,6 +932,8 @@ else ifeq ($(findstring SDL,$(WINDOW_API)),SDL)
   else ifeq ($(TARGET_RPI),1)
     BACKEND_LDFLAGS += -lGLESv2
   else ifeq ($(TARGET_BBB),1)
+    BACKEND_LDFLAGS += -lGLESv2
+  else ifeq ($(USE_GLES),1)
     BACKEND_LDFLAGS += -lGLESv2
   else ifeq ($(OSX_BUILD),1)
     BACKEND_LDFLAGS += -framework OpenGL `pkg-config --libs glew`

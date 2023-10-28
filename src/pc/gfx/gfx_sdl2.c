@@ -34,7 +34,9 @@
 #include "../cliopts.h"
 
 #include "src/pc/controller/controller_keyboard.h"
+#ifdef TOUCH_CONTROLS
 #include "src/pc/controller/controller_touchscreen.h"
+#endif
 #include "src/pc/controller/controller_sdl.h"
 #include "src/pc/controller/controller_bind_mapping.h"
 #include "pc/utils/misc.h"
@@ -62,9 +64,11 @@ static kb_callback_t kb_key_down = NULL;
 static kb_callback_t kb_key_up = NULL;
 static void (*kb_all_keys_up)(void) = NULL;
 static void (*kb_text_input)(char*) = NULL;
+#ifdef TOUCH_CONTROLS
 static void (*touch_down_callback)(void* event);
 static void (*touch_motion_callback)(void* event);
 static void (*touch_up_callback)(void* event);
+#endif
 
 #define IS_FULLSCREEN() ((SDL_GetWindowFlags(wnd) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0)
 
@@ -120,7 +124,7 @@ static void gfx_sdl_init(const char *window_title) {
     SDL_StartTextInput();
     #endif
 
-    #ifdef __ANDROID__
+    #ifdef TARGET_ANDROID
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
     #endif
 

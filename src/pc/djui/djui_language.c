@@ -19,7 +19,7 @@ bool djui_language_init(char* lang) {
     // construct path
     char exePath[SYS_MAX_PATH] = "";
     // path_to_executable() is unimplementable on Android and non-Apple, non-Linux UNIX
-#ifdef __ANDROID__
+#ifdef TARGET_ANDROID
     // on Android, use a special path I choose my own way
     const char *gamedir = get_gamedir();
     snprintf(exePath, sizeof(exePath), "%s", gamedir);

@@ -7,7 +7,7 @@
 
 /* Platform-specific functions and whatnot */
 
-#ifdef __ANDROID__
+#ifdef TARGET_ANDROID
 #define ANDROID_APPNAME "com.owokitty.sm64excoop"
 #endif
 
@@ -22,7 +22,7 @@ char *sys_strlwr(char *src);
 int sys_strcasecmp(const char *s1, const char *s2);
 
 // path stuff
-#ifdef __ANDROID__
+#ifdef TARGET_ANDROID
 const char* get_gamedir(void);
 #endif
 const char *sys_user_path(void);

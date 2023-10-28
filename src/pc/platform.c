@@ -85,7 +85,7 @@ void sys_fatal(const char *fmt, ...) {
 // we can just ask SDL for most of this shit if we have it
 #include <SDL2/SDL.h>
 
-#ifdef __ANDROID__
+#ifdef TARGET_ANDROID
 #include "platform.h"
 // The purpose of this code is to store/use the game data in /storage/emulated/0
 // instead of /storage/emulated/0/Android/data if the user permits it, which
