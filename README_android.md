@@ -84,7 +84,7 @@ termux-setup-storage
 
 > WARNING: As of 5/5/23, the Termux package **`libglvnd`** itself (_not_ `libglvnd-dev`) now has a compile-time conflict with this app. If you have it installed during your build, then you will get an error at run-time: "`'libGLESv2.so.2' not found`". It's OK if you see this:
 > ![image](https://github.com/robertkirkman/sm64ex-coop/assets/31490854/7cef75ee-7503-4723-8343-d06e298c3cf8)
-> If you see that error, just ignore it and continue to `pkg install`. It's just important for anyone who does have `libglvnd` to remove it.
+> If you see that error, just ignore it and continue to `pkg install`. It's just important for anyone who does have `libglvnd` to remove it. `libglvnd` is only for changing a setting that's directly analogous to what's referred to on Windows builds of sm64ex as "changing the render API". If you don't want to remove `libglvnd` because you need it, then you should follow [this separate guide I made for building the game with `libglvnd` installed](https://github.com/robertkirkman/sm64ex-coop#how-to-get-this-mode).
 
 ```bash
 pkg remove libglvnd
