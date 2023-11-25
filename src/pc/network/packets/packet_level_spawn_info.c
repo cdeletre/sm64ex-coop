@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "../network.h"
+#include "game/area.h"
 #include "game/interaction.h"
 #include "game/object_list_processor.h"
 #include "game/object_helpers.h"
@@ -84,7 +85,7 @@ void network_send_level_spawn_info(struct NetworkPlayer* destNp) {
         return;
     }
 
-    for (s32 i = 0; i < 8; i++) {
+    for (s32 i = 0; i < MAX_AREAS; i++) {
         network_send_level_spawn_info_area(destNp, i);
     }
 }
@@ -106,6 +107,10 @@ void network_receive_level_spawn_info(struct Packet* p) {
     packet_read(p, &spawnInfoDeletionCount, sizeof(u8));
     LOG_INFO("rx spawn info (count %d)", spawnInfoDeletionCount);
     if (spawnInfoDeletionCount <= 0) { return; }
+    if (thisAreaIndex >= MAX_AREAS) {
+        LOG_ERROR("Receiving 'location response' with invalid areaIndex!");
+        return;
+    }
 
     struct SpawnInfo* spawnInfo = gAreaData[thisAreaIndex].objectSpawnInfos;
     u16 spawnInfoIndex = 0;

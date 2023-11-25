@@ -32,6 +32,12 @@
 
 #define WARP_OP_TRIGGERS_LEVEL_SELECT 0x10
 
+#define SPECIAL_WARP_CAKE -1
+#define SPECIAL_WARP_GODDARD -2
+#define SPECIAL_WARP_GODDARD_GAMEOVER -3
+#define SPECIAL_WARP_TITLE -8
+#define SPECIAL_WARP_LEVEL_SELECT -9
+
 #define MARIO_SPAWN_DOOR_WARP             0x01
 #define MARIO_SPAWN_UNKNOWN_02            0x02
 #define MARIO_SPAWN_UNKNOWN_03            0x03
@@ -51,6 +57,15 @@
 #define MARIO_SPAWN_LAUNCH_STAR_COLLECT   0x24
 #define MARIO_SPAWN_LAUNCH_DEATH          0x25
 #define MARIO_SPAWN_UNKNOWN_27            0x27
+
+#define WARP_NODE_F0 0xF0
+#define WARP_NODE_DEATH 0xF1
+#define WARP_NODE_F2 0xF2
+#define WARP_NODE_WARP_FLOOR 0xF3
+#define WARP_NODE_CREDITS_START 0xF8
+#define WARP_NODE_CREDITS_NEXT 0xF9
+#define WARP_NODE_CREDITS_END 0xFA
+#define WARP_NODE_CREDITS_MIN 0xF8
 
 #define WARP_TYPE_NOT_WARPING 0
 #define WARP_TYPE_CHANGE_LEVEL 1
@@ -124,7 +139,7 @@ struct HudDisplay {
 };
 
 extern struct HudDisplay gHudDisplay;
-extern s8 gNeverEnteredCastle;
+extern bool gNeverEnteredCastle;
 
 extern u32 gControlTimerStartNat;
 extern u32 gControlTimerStopNat;
@@ -155,6 +170,8 @@ struct WarpNode *get_painting_warp_node(void);
 void initiate_painting_warp(s16 paintingIndex);
 s16 level_trigger_warp(struct MarioState *m, s32 warpOp);
 void level_set_transition(s16 length, void (*updateFunction)(s16 *));
+void warp_special(s32 arg);
+void initiate_warp(s16 destLevel, s16 destArea, s16 destWarpNode, s32 arg3);
 
 s32 lvl_init_or_update(s16 initOrUpdate, UNUSED s32 unused);
 s32 lvl_init_from_save_file(UNUSED s16 arg0, s32 levelNum);

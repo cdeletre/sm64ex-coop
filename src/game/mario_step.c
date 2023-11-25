@@ -10,7 +10,6 @@
 #include "mario_step.h"
 #include "pc/lua/smlua.h"
 #include "game/hardcoded.h"
-#include "pc/cheats.h"
 
 static s16 sMovingSandSpeeds[] = { 12, 8, 4, 0 };
 
@@ -114,7 +113,7 @@ u32 mario_update_quicksand(struct MarioState *m, f32 sinkingSpeed) {
     bool allow = true;
     smlua_call_event_hooks_mario_param_and_int_ret_bool(HOOK_ALLOW_HAZARD_SURFACE, m, HAZARD_TYPE_QUICKSAND, &allow);
     extern bool gDjuiInMainMenu;
-    if (m->action & ACT_FLAG_RIDING_SHELL || (gServerSettings.enableCheats && gCheats.godMode && m->playerIndex == 0) || (!allow) || gDjuiInMainMenu) {
+    if (m->action & ACT_FLAG_RIDING_SHELL || (!allow) || gDjuiInMainMenu) {
         m->quicksandDepth = 0.0f;
     } else {
         if (m->quicksandDepth < 1.1f) {
@@ -353,11 +352,6 @@ s32 perform_ground_step(struct MarioState *m) {
     s32 returnValue = 0;
     if (smlua_call_event_hooks_mario_param_and_int_ret_int(HOOK_BEFORE_PHYS_STEP, m, STEP_TYPE_GROUND, &returnValue)) return returnValue;
 
-    if (gServerSettings.enableCheats && gCheats.superSpeed && m->playerIndex == 0 && m->action != ACT_BUBBLED) {
-        m->vel[0] *= SUPER_SPEED_MULTIPLIER;
-        m->vel[2] *= SUPER_SPEED_MULTIPLIER;
-    }
-
     for (i = 0; i < 4; i++) {
         Vec3f step = { 0 };
         if (m->floor) {
@@ -417,6 +411,8 @@ u32 check_ledge_grab(struct MarioState *m, struct Surface *wall, Vec3f intendedP
     ledgePos[0] = nextPos[0] - wall->normal.x * 60.0f;
     ledgePos[2] = nextPos[2] - wall->normal.z * 60.0f;
     ledgePos[1] = find_floor(ledgePos[0], nextPos[1] + 160.0f, ledgePos[2], &ledgeFloor);
+
+    if (!ledgeFloor) { return FALSE; }
 
     if (gLevelValues.fixCollisionBugs && gLevelValues.fixCollisionBugsFalseLedgeGrab) {
         // fix false ledge grabs
@@ -718,11 +714,6 @@ s32 perform_air_step(struct MarioState *m, u32 stepArg) {
 
     s32 returnValue = 0;
     if (smlua_call_event_hooks_mario_param_and_int_and_int_ret_int(HOOK_BEFORE_PHYS_STEP, m, STEP_TYPE_AIR, stepArg, &returnValue)) return returnValue;
-
-    if (gServerSettings.enableCheats && gCheats.superSpeed && m->playerIndex == 0 && m->action != ACT_BUBBLED) {
-        m->vel[0] *= SUPER_SPEED_MULTIPLIER;
-        m->vel[2] *= SUPER_SPEED_MULTIPLIER;
-    }
 
     m->wall = NULL;
 

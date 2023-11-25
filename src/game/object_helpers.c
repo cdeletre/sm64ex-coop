@@ -2080,7 +2080,7 @@ s32 cur_obj_detect_steep_floor(s16 steepAngleDegrees) {
         if (intendedFloorHeight < gLevelValues.floorLowerLimitMisc) {
             o->oWallAngle = o->oMoveAngleYaw + 0x8000;
             return 2;
-        } else if (intendedFloor->normal.y < steepNormalY && deltaFloorHeight > 0
+        } else if (intendedFloor && intendedFloor->normal.y < steepNormalY && deltaFloorHeight > 0
                    && intendedFloorHeight > o->oPosY) {
             o->oWallAngle = atan2s(intendedFloor->normal.z, intendedFloor->normal.x);
             return 1;
@@ -2716,20 +2716,29 @@ s32 cur_obj_set_direction_table(s8 *a0) {
 
 s32 cur_obj_progress_direction_table(void) {
     if (!o) { return 0; }
-    s8 spF;
-    s8 *sp8 = o->oToxBoxMovementPattern;
-    s32 sp4 = o->oToxBoxMovementStep + 1;
-    if (!sp8) { return 0; }
+    s8 ret;
+    s8 *table = o->oToxBoxMovementPattern;
+    s32 index = o->oToxBoxMovementStep + 1;
+    if (!table) { return 0; }
 
-    if (sp8[sp4] != -1) {
-        spF = sp8[sp4];
+    s32 tableLength = 0;
+    while (table[tableLength] != -1 && tableLength < 150) {
+        tableLength++;
+    }
+
+    if (tableLength < 0 || index < 0 || tableLength >= 150 || index >= tableLength) {
+        ret = table[0];
+        o->oToxBoxMovementStep = 0;
+        LOG_ERROR("Exceeded direction table! tableLength %d, index %d\n", tableLength, index);
+    } else if (table[index] != -1) {
+        ret = table[index];
         o->oToxBoxMovementStep++;
     } else {
-        spF = sp8[0];
+        ret = table[0];
         o->oToxBoxMovementStep = 0;
     }
 
-    return spF;
+    return ret;
 }
 
 void stub_obj_helpers_3(UNUSED s32 sp0, UNUSED s32 sp4) {

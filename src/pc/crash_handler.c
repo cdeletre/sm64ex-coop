@@ -27,6 +27,7 @@ char gLastRemoteBhv[256] = "";
 #include "pc/gfx/gfx_rendering_api.h"
 #include "pc/mods/mods.h"
 #include "pc/debuglog.h"
+#include "pc/pc_main.h"
 
 typedef struct {
     s32 x, y;
@@ -274,13 +275,12 @@ static void crash_handler_produce_one_frame() {
     // Render frame
     end_master_display_list();
     alloc_display_list(0);
-    extern void send_display_list(struct SPTask *spTask);
-    send_display_list(&gGfxPool->spTask);
+    gfx_run((Gfx*) gGfxSPTask->task.t.data_ptr); // send_display_list
     display_and_vsync();
     gfx_end_frame();
 }
 
-static void crash_handler_add_info_str(CrashHandlerText** pTextP, f32 x, f32 y, char* title, char* value) {
+static void crash_handler_add_info_str(CrashHandlerText** pTextP, f32 x, f32 y, const char* title, const char* value) {
     CrashHandlerText* pText = *pTextP;
     crash_handler_set_text(x, y, 0xFF, 0xFF, 0x00, "%s", title);
     crash_handler_set_text(-1, y, 0xFF, 0xFF, 0xFF, "%s", ": ");
@@ -288,7 +288,7 @@ static void crash_handler_add_info_str(CrashHandlerText** pTextP, f32 x, f32 y, 
     *pTextP = pText;
 }
 
-static void crash_handler_add_info_int(CrashHandlerText** pTextP, f32 x, f32 y, char* title, int value) {
+static void crash_handler_add_info_int(CrashHandlerText** pTextP, f32 x, f32 y, const char* title, int value) {
     CrashHandlerText* pText = *pTextP;
     crash_handler_set_text(x, y, 0xFF, 0xFF, 0x00, "%s", title);
     crash_handler_set_text(-1, y, 0xFF, 0xFF, 0xFF, "%s", ": ");
@@ -301,7 +301,7 @@ static CRASH_HANDLER_TYPE crash_handler(EXCEPTION_POINTERS *ExceptionInfo) {
 #elif __linux__
 static void crash_handler(const int signalNum, siginfo_t *info, ucontext_t *context) {
 #endif
-    LOG_INFO("game crashed! preparing crash screen...");
+    printf("game crashed! preparing crash screen...\n");
     memset(sCrashHandlerText, 0, sizeof(sCrashHandlerText));
     CrashHandlerText *pText = &sCrashHandlerText[0];
     gDjuiDisabled = true;
@@ -657,33 +657,34 @@ static void crash_handler(const int signalNum, siginfo_t *info, ucontext_t *cont
     }
 #endif
 
+    // Incase it crashed before the game window opened
+    if (!gGfxInited) gfx_init(&WAPI, &RAPI, TITLE);
+    djui_init();
+    djui_unicode_init();
+
     // Main loop
     while (true) {
-#if defined(WAPI_SDL1) || defined(WAPI_SDL2)
-        gfx_sdl.main_loop(crash_handler_produce_one_frame);
-#elif defined(WAPI_DXGI)
-        gfx_dxgi.main_loop(crash_handler_produce_one_frame);
-#endif
+        WAPI.main_loop(crash_handler_produce_one_frame);
     }
     exit(0);
 }
 
-__attribute__((constructor)) static void init_crash_handler() {
+AT_STARTUP static void init_crash_handler() {
 #ifdef _WIN32
     // Windows
     SetUnhandledExceptionFilter(crash_handler);
 #elif __linux__
+
     // Linux
-    struct sigaction linux_crash_handler;
+    struct sigaction linuxCrashHandler;
+    linuxCrashHandler.sa_handler = (void*) &crash_handler;
+    sigemptyset(&linuxCrashHandler.sa_mask);
+    linuxCrashHandler.sa_flags = SA_SIGINFO; // Get extra info about the crash
 
-    linux_crash_handler.sa_handler = (void *)crash_handler;
-    sigemptyset(&linux_crash_handler.sa_mask);
-    linux_crash_handler.sa_flags = SA_SIGINFO; // Get extra info about the crash
-
-    sigaction(SIGBUS, &linux_crash_handler, NULL);
-    sigaction(SIGFPE, &linux_crash_handler, NULL);
-    sigaction(SIGILL, &linux_crash_handler, NULL);
-    sigaction(SIGSEGV, &linux_crash_handler, NULL);
+    sigaction(SIGBUS, &linuxCrashHandler, NULL);
+    sigaction(SIGFPE, &linuxCrashHandler, NULL);
+    sigaction(SIGILL, &linuxCrashHandler, NULL);
+    sigaction(SIGSEGV, &linuxCrashHandler, NULL);
 #endif
 }
 

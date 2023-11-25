@@ -77,6 +77,11 @@ function bhv_1up_sliding_loop()
 end
 
 --- @return nil
+function bhv_1up_trigger_init()
+    -- ...
+end
+
+--- @return nil
 function bhv_1up_walking_loop()
     -- ...
 end
@@ -3573,6 +3578,13 @@ function get_character(m)
 end
 
 --- @param m MarioState
+--- @param characterAnim CharacterAnimID
+--- @return integer
+function get_character_anim(m, characterAnim)
+    -- ...
+end
+
+--- @param m MarioState
 --- @return number
 function get_character_anim_offset(m)
     -- ...
@@ -3610,6 +3622,16 @@ end
 --- @param message string
 --- @return nil
 function djui_chat_message_create(message)
+    -- ...
+end
+
+--- @return nil
+function djui_console_message_dequeue()
+    -- ...
+end
+
+--- @return nil
+function djui_console_toggle()
     -- ...
 end
 
@@ -3720,12 +3742,6 @@ end
 --- @param locked boolean
 --- @return nil
 function djui_hud_set_mouse_locked(locked)
-    -- ...
-end
-
---- @param enable boolean
---- @return nil
-function djui_hud_set_render_behind_hud(enable)
     -- ...
 end
 
@@ -4184,6 +4200,19 @@ function level_trigger_warp(m, warpOp)
     -- ...
 end
 
+--- @param arg0 integer
+--- @param levelNum integer
+--- @return integer
+function lvl_set_current_level(arg0, levelNum)
+    -- ...
+end
+
+--- @param arg integer
+--- @return nil
+function warp_special(arg)
+    -- ...
+end
+
 --- @param m MarioState
 --- @return nil
 function adjust_sound_for_speed(m)
@@ -4435,6 +4464,21 @@ end
 --- @param animFrame integer
 --- @return nil
 function set_anim_to_frame(m, animFrame)
+    -- ...
+end
+
+--- @param m MarioState
+--- @param targetAnimID integer
+--- @param accel integer
+--- @return integer
+function set_character_anim_with_accel(m, targetAnimID, accel)
+    -- ...
+end
+
+--- @param m MarioState
+--- @param targetAnimID integer
+--- @return integer
+function set_character_animation(m, targetAnimID)
     -- ...
 end
 
@@ -5667,6 +5711,11 @@ function update_all_mario_stars()
     -- ...
 end
 
+--- @return boolean
+function mod_storage_clear()
+    -- ...
+end
+
 --- @param key string
 --- @return string
 function mod_storage_load(key)
@@ -5674,9 +5723,35 @@ function mod_storage_load(key)
 end
 
 --- @param key string
+--- @return boolean
+function mod_storage_load_bool(key)
+    -- ...
+end
+
+--- @param key string
+--- @return number
+function mod_storage_load_number(key)
+    -- ...
+end
+
+--- @param key string
 --- @param value string
 --- @return boolean
 function mod_storage_save(key, value)
+    -- ...
+end
+
+--- @param key string
+--- @param value boolean
+--- @return boolean
+function mod_storage_save_bool(key, value)
+    -- ...
+end
+
+--- @param key string
+--- @param value number
+--- @return boolean
+function mod_storage_save_number(key, value)
     -- ...
 end
 
@@ -6888,11 +6963,6 @@ function cur_obj_outside_home_square(halfLength)
     -- ...
 end
 
---- @return integer
-function cur_obj_progress_direction_table()
-    -- ...
-end
-
 --- @param radius number
 --- @return nil
 function cur_obj_push_mario_away(radius)
@@ -6966,12 +7036,6 @@ end
 
 --- @return nil
 function cur_obj_set_billboard_if_vanilla_cam()
-    -- ...
-end
-
---- @param a0 Pointer_integer
---- @return integer
-function cur_obj_set_direction_table(a0)
     -- ...
 end
 
@@ -7960,6 +8024,14 @@ end
 
 --- @param fileIndex integer
 --- @param courseIndex integer
+--- @param starFlagsToRemove integer
+--- @return nil
+function save_file_remove_star_flags(fileIndex, courseIndex, starFlagsToRemove)
+    -- ...
+end
+
+--- @param fileIndex integer
+--- @param courseIndex integer
 --- @param coinScore integer
 --- @return nil
 function save_file_set_course_coin_score(fileIndex, courseIndex, coinScore)
@@ -8152,6 +8224,22 @@ function smlua_audio_utils_reset_all()
     -- ...
 end
 
+--- @param x number
+--- @param y number
+--- @param z number
+--- @return Surface
+function collision_find_ceil(x, y, z)
+    -- ...
+end
+
+--- @param x number
+--- @param y number
+--- @param z number
+--- @return Surface
+function collision_find_floor(x, y, z)
+    -- ...
+end
+
 --- @param startX number
 --- @param startY number
 --- @param startZ number
@@ -8176,6 +8264,12 @@ end
 --- @param name string
 --- @return Pointer_Collision
 function smlua_collision_util_get(name)
+    -- ...
+end
+
+--- @param enable boolean
+--- @return nil
+function djui_hud_set_render_behind_hud(enable)
     -- ...
 end
 
@@ -8204,9 +8298,21 @@ function level_register(scriptEntryName, courseNum, fullName, shortName, acousti
     -- ...
 end
 
+--- @param areaIndex integer
+--- @return nil
+function smlua_level_util_change_area(areaIndex)
+    -- ...
+end
+
 --- @param levelNum integer
 --- @return CustomLevelInfo
 function smlua_level_util_get_info(levelNum)
+    -- ...
+end
+
+--- @param courseNum integer
+--- @return CustomLevelInfo
+function smlua_level_util_get_info_from_course_num(courseNum)
     -- ...
 end
 
@@ -8323,6 +8429,12 @@ end
 --- @param actFlags integer
 --- @return integer
 function allocate_mario_action(actFlags)
+    -- ...
+end
+
+--- @param allow integer
+--- @return nil
+function camera_allow_toxic_gas_camera(allow)
     -- ...
 end
 
@@ -8457,6 +8569,12 @@ function camera_romhack_allow_centering(allow)
     -- ...
 end
 
+--- @param allow integer
+--- @return nil
+function camera_romhack_allow_dpad_usage(allow)
+    -- ...
+end
+
 --- @param rco RomhackCameraOverride
 --- @return nil
 function camera_set_romhack_override(rco)
@@ -8480,10 +8598,26 @@ function deref_s32_pointer(pointer)
     -- ...
 end
 
+--- @return boolean
+function djui_is_popup_disabled()
+    -- ...
+end
+
 --- @param message string
 --- @param lines integer
 --- @return nil
 function djui_popup_create_global(message, lines)
+    -- ...
+end
+
+--- @return nil
+function djui_reset_popup_disabled_override()
+    -- ...
+end
+
+--- @param value boolean
+--- @return nil
+function djui_set_popup_disabled_override(value)
     -- ...
 end
 
@@ -8661,6 +8795,12 @@ end
 
 --- @return boolean
 function is_transition_playing()
+    -- ...
+end
+
+--- @param message string
+--- @return nil
+function log_to_console(message)
     -- ...
 end
 
@@ -9025,6 +9165,35 @@ function spawn_sync_object(behaviorId, modelId, x, y, z, objSetupFunction)
     -- ...
 end
 
+--- @param courseNum integer
+--- @param actNum integer
+--- @return string
+function smlua_text_utils_act_name_get(courseNum, actNum)
+    -- ...
+end
+
+--- @param courseNum integer
+--- @param actNum integer
+--- @return integer
+function smlua_text_utils_act_name_mod_index(courseNum, actNum)
+    -- ...
+end
+
+--- @param courseNum integer
+--- @param actNum integer
+--- @param name string
+--- @return nil
+function smlua_text_utils_act_name_replace(courseNum, actNum, name)
+    -- ...
+end
+
+--- @param courseNum integer
+--- @param actNum integer
+--- @return nil
+function smlua_text_utils_act_name_reset(courseNum, actNum)
+    -- ...
+end
+
 --- @param name string
 --- @return nil
 function smlua_text_utils_castle_secret_stars_replace(name)
@@ -9041,6 +9210,31 @@ end
 --- @param act6 string
 --- @return nil
 function smlua_text_utils_course_acts_replace(courseNum, courseName, act1, act2, act3, act4, act5, act6)
+    -- ...
+end
+
+--- @param courseNum integer
+--- @return string
+function smlua_text_utils_course_name_get(courseNum)
+    -- ...
+end
+
+--- @param courseNum integer
+--- @return integer
+function smlua_text_utils_course_name_mod_index(courseNum)
+    -- ...
+end
+
+--- @param courseNum integer
+--- @param name string
+--- @return nil
+function smlua_text_utils_course_name_replace(courseNum, name)
+    -- ...
+end
+
+--- @param courseNum integer
+--- @return nil
+function smlua_text_utils_course_name_reset(courseNum)
     -- ...
 end
 
@@ -9064,11 +9258,6 @@ end
 
 --- @return string
 function smlua_text_utils_get_language()
-    -- ...
-end
-
---- @return nil
-function smlua_text_utils_reset_all()
     -- ...
 end
 

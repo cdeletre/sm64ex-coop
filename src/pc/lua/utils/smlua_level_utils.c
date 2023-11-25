@@ -2,6 +2,9 @@
 #include "types.h"
 #include "smlua_level_utils.h"
 #include "pc/lua/smlua.h"
+#include "game/area.h"
+
+#define MIN_AREA_INDEX 0
 
 struct CustomLevelInfo* sCustomLevelHead = NULL;
 static s16 sCustomLevelNumNext = CUSTOM_LEVEL_NUM_START;
@@ -31,6 +34,12 @@ void smlua_level_util_reset(void) {
     sCustomLevelNumNext = CUSTOM_LEVEL_NUM_START;
 }
 
+void smlua_level_util_change_area(s32 areaIndex) {
+    if (areaIndex >= MIN_AREA_INDEX && areaIndex < MAX_AREAS && gAreas[areaIndex].unk04 != NULL) {
+        change_area(areaIndex);
+    }
+}
+
 struct CustomLevelInfo* smlua_level_util_get_info(s16 levelNum) {
     struct CustomLevelInfo* node = sCustomLevelHead;
     while (node != NULL) {
@@ -42,7 +51,7 @@ struct CustomLevelInfo* smlua_level_util_get_info(s16 levelNum) {
     return NULL;
 }
 
-struct CustomLevelInfo* smlua_level_util_get_info_from_short_name(char* shortName) {
+struct CustomLevelInfo* smlua_level_util_get_info_from_short_name(const char* shortName) {
     struct CustomLevelInfo* node = sCustomLevelHead;
     while (node != NULL) {
         if (!strcmp(node->shortName, shortName)) {
@@ -53,10 +62,21 @@ struct CustomLevelInfo* smlua_level_util_get_info_from_short_name(char* shortNam
     return NULL;
 }
 
-static struct CustomLevelInfo* smlua_level_util_get_info_from_script(char* scriptEntryName) {
+static struct CustomLevelInfo* smlua_level_util_get_info_from_script(const char* scriptEntryName) {
     struct CustomLevelInfo* node = sCustomLevelHead;
     while (node != NULL) {
         if (!strcmp(node->scriptEntryName, scriptEntryName)) {
+            return node;
+        }
+        node = node->next;
+    }
+    return NULL;
+}
+
+struct CustomLevelInfo* smlua_level_util_get_info_from_course_num(u8 courseNum) {
+    struct CustomLevelInfo* node = sCustomLevelHead;
+    while (node != NULL) {
+        if (node->courseNum == courseNum) {
             return node;
         }
         node = node->next;
@@ -82,13 +102,13 @@ s16 level_register(const char* scriptEntryName, s16 courseNum, const char* fullN
     }
 
     // find duplicate
-    struct CustomLevelInfo* info = smlua_level_util_get_info_from_script((char*)scriptEntryName);
+    struct CustomLevelInfo* info = smlua_level_util_get_info_from_script(scriptEntryName);
     if (info != NULL) {
         return info->levelNum;
     }
 
     // find script
-    LevelScript* script = dynos_get_level_script((char*)scriptEntryName);
+    LevelScript* script = dynos_get_level_script(scriptEntryName);
     if (script == NULL) {
         LOG_LUA("Failed to find script: %s", scriptEntryName);
         return 0;

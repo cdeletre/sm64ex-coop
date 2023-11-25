@@ -419,6 +419,7 @@ void network_receive_object(struct Packet* p) {
 
     // deactivated
     if (o->activeFlags == ACTIVE_FLAG_DEACTIVATED) {
+        o->oSyncDeath = 1; // Force oSyncDeath if deactivated
         sync_object_forget(so->id);
     } else if (p->reliable) {
         // remember packet
@@ -442,7 +443,7 @@ void network_receive_object(struct Packet* p) {
         deltaPos[1] = o->oPosZ - oldPos[2];
         for (s32 i = 0; i < MAX_PLAYERS; i++) {
             if (!is_player_active(&gMarioStates[i])) { continue; }
-            if (gMarioStates[i].marioObj->platform != o) { continue; }
+            if (!gMarioStates[i].marioObj || gMarioStates[i].marioObj->platform != o) { continue; }
             for (s32 j = 0; j < 3; j++) { gMarioStates[i].pos[j] += deltaPos[j]; }
         }
     }
@@ -467,7 +468,9 @@ void network_update_objects(void) {
 
         // check for stale sync object
         if (so->o->oSyncID != so->id) {
-            LOG_ERROR("sync id mismatch: %d vs %d (behavior %d)", so->o->oSyncID, so->id, get_id_from_behavior(so->o->behavior));
+            enum BehaviorId bhvId = get_id_from_behavior(so->o->behavior);
+            const char* bhvName = get_behavior_name_from_id(bhvId);
+            LOG_ERROR("sync id mismatch: %d vs %d (behavior %s, %d)", so->o->oSyncID, so->id, bhvName != NULL ? bhvName : "NULL", bhvId);
             sync_object_forget(so->id);
             continue;
         }

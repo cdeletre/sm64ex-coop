@@ -439,17 +439,19 @@ void smlua_push_object(lua_State* L, u16 lot, void* p) {
         lua_pushnil(L);
         return;
     }
-    // add to allowlist
-    smlua_cobject_allowlist_add(lot, (u64)(intptr_t)p);
+    u64 pointer = (uintptr_t) p;
 
-    lua_newtable(L);
-    int t = lua_gettop(L);
-    smlua_push_integer_field(t, "_lot", lot);
-    smlua_push_integer_field(t, "_pointer", (u64)(intptr_t)p);
-    lua_pushglobaltable(L);
-    lua_getfield(gLuaState, -1, "_CObject");
-    lua_setmetatable(L, -3);
-    lua_pop(L, 1); // pop global table
+    // add to allowlist
+    smlua_cobject_allowlist_add(lot, pointer);
+
+    // get a cobject from a function
+    lua_getglobal(L, "_NewCObject");  // Get the function by its global name
+    lua_pushinteger(L, lot);
+    lua_pushinteger(L, pointer);
+
+    if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
+        LOG_ERROR("Error calling Lua function: %s\n", lua_tostring(L, -1));
+    }
 }
 
 void smlua_push_pointer(lua_State* L, u16 lvt, void* p) {
@@ -458,39 +460,39 @@ void smlua_push_pointer(lua_State* L, u16 lvt, void* p) {
         return;
     }
 
-    smlua_cpointer_allowlist_add(lvt, (u64)(intptr_t)p);
+    u64 pointer = (uintptr_t) p;
+    smlua_cpointer_allowlist_add(lvt, pointer);
 
-    lua_newtable(L);
-    int t = lua_gettop(L);
-    smlua_push_integer_field(t, "_lvt", lvt);
-    smlua_push_integer_field(t, "_pointer", (u64)(intptr_t)p);
-    lua_pushglobaltable(L);
-    lua_getfield(gLuaState, -1, "_CPointer");
-    lua_setmetatable(L, -3);
-    lua_pop(L, 1); // pop global table
+    // get a cpointer from a function
+    lua_getglobal(L, "_NewCPointer");  // Get the function by its global name
+    lua_pushinteger(L, lvt);
+    lua_pushinteger(L, pointer);
+    if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
+        LOG_ERROR("Error calling Lua function: %s\n", lua_tostring(L, -1));
+    }
 }
 
-void smlua_push_integer_field(int index, char* name, lua_Integer val) {
+void smlua_push_integer_field(int index, const char* name, lua_Integer val) {
     lua_pushinteger(gLuaState, val);
     lua_setfield(gLuaState, index, name);
 }
 
-void smlua_push_number_field(int index, char* name, lua_Number val) {
+void smlua_push_number_field(int index, const char* name, lua_Number val) {
     lua_pushnumber(gLuaState, val);
     lua_setfield(gLuaState, index, name);
 }
 
-void smlua_push_string_field(int index, char* name, const char* val) {
+void smlua_push_string_field(int index, const char* name, const char* val) {
     lua_pushstring(gLuaState, val);
     lua_setfield(gLuaState, index, name);
 }
 
-void smlua_push_nil_field(int index, char* name) {
+void smlua_push_nil_field(int index, const char* name) {
     lua_pushnil(gLuaState);
     lua_setfield(gLuaState, index, name);
 }
 
-void smlua_push_table_field(int index, char* name) {
+void smlua_push_table_field(int index, const char* name) {
     lua_newtable(gLuaState);
     lua_setfield(gLuaState, index, name);
 }
@@ -521,7 +523,7 @@ void smlua_push_lnt(struct LSTNetworkType* lnt) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-lua_Integer smlua_get_integer_field(int index, char* name) {
+lua_Integer smlua_get_integer_field(int index, const char* name) {
     if (lua_type(gLuaState, index) != LUA_TTABLE) {
         LOG_LUA_LINE("smlua_get_integer_field received improper type '%d'", lua_type(gLuaState, index));
         gSmLuaConvertSuccess = false;
@@ -533,7 +535,7 @@ lua_Integer smlua_get_integer_field(int index, char* name) {
     return val;
 }
 
-lua_Number smlua_get_number_field(int index, char* name) {
+lua_Number smlua_get_number_field(int index, const char* name) {
     if (lua_type(gLuaState, index) != LUA_TTABLE) {
         LOG_LUA_LINE("smlua_get_number_field received improper type '%d'", lua_type(gLuaState, index));
         gSmLuaConvertSuccess = false;
@@ -545,7 +547,7 @@ lua_Number smlua_get_number_field(int index, char* name) {
     return val;
 }
 
-LuaFunction smlua_get_function_field(int index, char *name) {
+LuaFunction smlua_get_function_field(int index, const char *name) {
     if (lua_type(gLuaState, index) != LUA_TTABLE) {
         LOG_LUA_LINE("smlua_get_function_field received improper type '%d'", lua_type(gLuaState, index));
         gSmLuaConvertSuccess = false;
@@ -564,6 +566,11 @@ s64 smlua_get_integer_mod_variable(u16 modIndex, const char* variable) {
 
     if (!gActiveMods.entries) {
         LOG_ERROR("Could not find mod list entries");
+        return 0;
+    }
+
+    if (modIndex >= gActiveMods.entryCount) {
+        LOG_ERROR("Could not find mod list entry");
         return 0;
     }
 
@@ -618,6 +625,11 @@ s64 smlua_get_any_integer_mod_variable(const char* variable) {
 LuaFunction smlua_get_function_mod_variable(u16 modIndex, const char *variable) {
     lua_State *L = gLuaState;
 
+    if (modIndex >= gActiveMods.entryCount) {
+        LOG_ERROR("Could not find mod list entry for modIndex: %u", modIndex);
+        return 0;
+    }
+
     // figure out entry
     struct Mod *mod = gActiveMods.entries[modIndex];
     if (mod == NULL) {
@@ -668,7 +680,7 @@ LuaFunction smlua_get_any_function_mod_variable(const char *variable) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-char* smlua_lnt_to_str(struct LSTNetworkType* lnt) {
+const char* smlua_lnt_to_str(struct LSTNetworkType* lnt) {
     static char sLntStr[32] = "";
     switch (lnt->type) {
         case LST_NETWORK_TYPE_INTEGER:

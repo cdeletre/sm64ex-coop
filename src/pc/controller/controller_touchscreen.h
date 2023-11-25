@@ -13,23 +13,6 @@
 #define SNAP_BUTTON 0x0004
 #define LUA_BUTTON 0x0005
 
-#define HUD_CHAT 113
-#define HUD_CUP 123
-#define HUD_CDOWN 124
-#define HUD_CLEFT 125
-#define HUD_CRIGHT 126
-#define HUD_SNAP 127
-#define HUD_CHECK 128
-#define HUD_CROSS 129
-#define HUD_RESET 130
-#define HUD_TRASH 131
-#define HUD_UP 132
-#define HUD_DOWN 133
-#define HUD_LEFT 134
-#define HUD_RIGHT 135
-#define HUD_MULTIPLY 137
-#define HUD_LUA 21
-
 #define CONTROL_ELEMENT_COUNT 21
 #define CONTROL_CONFIG_ELEMENT_COUNT 4
 

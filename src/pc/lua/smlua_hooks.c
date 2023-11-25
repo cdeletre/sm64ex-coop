@@ -1,4 +1,8 @@
+#include <string.h>
+#include <ctype.h>
+#include <stdbool.h>
 #include "smlua.h"
+#include "sm64.h"
 #include "behavior_commands.h"
 #include "pc/mods/mod.h"
 #include "src/game/object_list_processor.h"
@@ -6,6 +10,11 @@
 #include "pc/crash_handler.h"
 #include "src/game/hud.h"
 #include "pc/debug_context.h"
+#include "pc/network/network.h"
+#include "pc/network/network_player.h"
+#include "pc/network/socket/socket.h"
+#include "pc/chat_commands.h"
+#include "pc/pc_main.h"
 
 #if defined(DEVELOPMENT)
 #include "../mods/mods.h"
@@ -89,6 +98,8 @@ struct LuaHookedEvent {
 static struct LuaHookedEvent sHookedEvents[HOOK_MAX] = { 0 };
 
 int smlua_call_hook(lua_State* L, int nargs, int nresults, int errfunc, struct Mod* activeMod) {
+    if (!gGameInited) { return 0; } // Don't call hooks while the game is booting
+
     struct Mod* prev = gLuaActiveMod;
     gLuaActiveMod = activeMod;
     gLuaLastHookMod = activeMod;
@@ -162,20 +173,60 @@ void smlua_call_event_hooks(enum LuaHookedEventType hookType) {
     }
 }
 
-void smlua_call_event_hooks_with_reset_func(enum LuaHookedEventType hookType, void (*resetFunc)(void)) {
+void smlua_call_event_on_hud_render(void (*resetFunc)(void)) {
     lua_State* L = gLuaState;
     if (L == NULL) { return; }
-    struct LuaHookedEvent* hook = &sHookedEvents[hookType];
+    if (resetFunc) { resetFunc(); }
+
+    struct LuaHookedEvent* hook = &sHookedEvents[HOOK_ON_HUD_RENDER];
+    for (int i = 0; i < hook->count; i++) {
+        // support deprecated render behind hud
+        if (hook->mod[i]->renderBehindHud) { continue; }
+
+        // push the callback onto the stack
+        lua_rawgeti(L, LUA_REGISTRYINDEX, hook->reference[i]);
+
+        // call the callback
+        if (0 != smlua_call_hook(L, 0, 0, 0, hook->mod[i])) {
+            LOG_LUA("Failed to call the event_hook callback: %u", HOOK_ON_HUD_RENDER);
+        }
+        if (resetFunc) { resetFunc(); }
+    }
+}
+
+void smlua_call_event_on_hud_render_behind(void (*resetFunc)(void)) {
+    lua_State* L = gLuaState;
+    if (L == NULL) { return; }
+    if (resetFunc) { resetFunc(); }
+
+    struct LuaHookedEvent* hook = &sHookedEvents[HOOK_ON_HUD_RENDER_BEHIND];
     for (int i = 0; i < hook->count; i++) {
         // push the callback onto the stack
         lua_rawgeti(L, LUA_REGISTRYINDEX, hook->reference[i]);
 
         // call the callback
         if (0 != smlua_call_hook(L, 0, 0, 0, hook->mod[i])) {
-            LOG_LUA("Failed to call the event_hook callback: %u", hookType);
+            LOG_LUA("Failed to call the event_hook callback: %u", HOOK_ON_HUD_RENDER_BEHIND);
         }
         if (resetFunc) { resetFunc(); }
     }
+
+    // support deprecated render behind hud
+    hook = &sHookedEvents[HOOK_ON_HUD_RENDER];
+    for (int i = 0; i < hook->count; i++) {
+        // support deprecated render behind hud
+        if (!hook->mod[i]->renderBehindHud) { continue; }
+
+        // push the callback onto the stack
+        lua_rawgeti(L, LUA_REGISTRYINDEX, hook->reference[i]);
+
+        // call the callback
+        if (0 != smlua_call_hook(L, 0, 0, 0, hook->mod[i])) {
+            LOG_LUA("Failed to call the event_hook callback: %u", HOOK_ON_HUD_RENDER);
+        }
+        if (resetFunc) { resetFunc(); }
+    }
+
 }
 
 void smlua_call_event_hooks_bool_param(enum LuaHookedEventType hookType, bool value) {
@@ -840,6 +891,28 @@ bool smlua_call_event_hooks_mario_param_and_int_and_int_ret_int(enum LuaHookedEv
     return false;
 }
 
+void smlua_call_event_hooks_graph_node_object_and_int_param(enum LuaHookedEventType hookType, struct GraphNodeObject* node, s32 param) {
+    lua_State* L = gLuaState;
+    if (L == NULL) { return; }
+    struct LuaHookedEvent* hook = &sHookedEvents[hookType];
+    for (int i = 0; i < hook->count; i++) {
+        // push the callback onto the stack
+        lua_rawgeti(L, LUA_REGISTRYINDEX, hook->reference[i]);
+
+        // push graph node object
+        smlua_push_object(L, LOT_GRAPHNODEOBJECT, node);
+
+        // push param
+        lua_pushinteger(L, param);
+
+        // call the callback
+        if (0 != smlua_call_hook(L, 2, 0, 0, hook->mod[i])) {
+            LOG_LUA("Failed to call the callback: %u", hookType);
+            continue;
+        }
+    }
+}
+
   ////////////////////
  // hooked actions //
 ////////////////////
@@ -851,11 +924,11 @@ struct LuaHookedMarioAction {
     struct Mod* mod;
 };
 
-#define MAX_HOOKED_ACTIONS 128
+#define MAX_HOOKED_ACTIONS (ACT_NUM_GROUPS * ACT_NUM_ACTIONS_PER_GROUP)
 
 static struct LuaHookedMarioAction sHookedMarioActions[MAX_HOOKED_ACTIONS] = { 0 };
 static int sHookedMarioActionsCount = 0;
-u32 gLuaMarioActionIndex = 0;
+u32 gLuaMarioActionIndex[ACT_NUM_GROUPS] = { 0 };
 
 int smlua_hook_mario_action(lua_State* L) {
     if (L == NULL) { return 0; }
@@ -1304,7 +1377,7 @@ struct LuaHookedChatCommand {
     struct Mod* mod;
 };
 
-#define MAX_HOOKED_CHAT_COMMANDS 64
+#define MAX_HOOKED_CHAT_COMMANDS 512
 
 static struct LuaHookedChatCommand sHookedChatCommands[MAX_HOOKED_CHAT_COMMANDS] = { 0 };
 static int sHookedChatCommandsCount = 0;
@@ -1441,6 +1514,184 @@ void smlua_display_chat_commands(void) {
     }
 }
 
+char* remove_color_codes(const char* str) {
+    char* result = strdup(str);
+    char* startColor;
+    while ((startColor = strstr(result, "\\#"))) {
+        char* endColor = strstr(startColor, "\\");
+        if (endColor) {
+            memmove(startColor, endColor + 1, strlen(endColor));
+        } else {
+            break;
+        }
+    }
+    return result;
+}
+
+bool is_valid_subcommand(const char* start, const char* end) {
+    for (const char* ptr = start; ptr < end; ptr++) {
+        if (isspace(*ptr) || *ptr == '\0') {
+            return false;
+        }
+    }
+    return true;
+}
+
+s32 sort_alphabetically(const void *a, const void *b) {
+    const char* strA = *(const char**)a;
+    const char* strB = *(const char**)b;
+
+    s32 cmpResult = strcasecmp(strA, strB);
+
+    if (cmpResult == 0) {
+        return strcmp(strA, strB);
+    }
+
+    return cmpResult;
+}
+
+char** smlua_get_chat_player_list(void) {
+    char* playerNames[MAX_PLAYERS] = { NULL };
+    s32 playerCount = 0;
+
+    for (s32 i = 0; i < MAX_PLAYERS; i++) {
+        struct NetworkPlayer* np = &gNetworkPlayers[i];
+        if (!np->connected) continue;
+
+        bool isDuplicate = false;
+        for (s32 j = 0; j < playerCount; j++) {
+            if (strcmp(playerNames[j], np->name) == 0) {
+                isDuplicate = true;
+                break;
+            }
+        }
+
+        if (!isDuplicate) {
+            playerNames[playerCount++] = np->name;
+        }
+    }
+
+    qsort(playerNames, playerCount, sizeof(char*), sort_alphabetically);
+
+    char** sortedPlayers = (char**) malloc((playerCount + 1) * sizeof(char*));
+    for (s32 i = 0; i < playerCount; i++) {
+        sortedPlayers[i] = strdup(playerNames[i]);
+    }
+    sortedPlayers[playerCount] = NULL;
+    return sortedPlayers;
+}
+
+
+char** smlua_get_chat_maincommands_list(void) {
+    #if defined(DEVELOPMENT)
+        char* additionalCmds[] = {"players", "kick", "ban", "permban", "moderator", "confirm", "help", "?", "warp", "lua", "luaf"};
+        s32 additionalCmdsCount = 11;
+    #else
+        char* additionalCmds[] = {"players", "kick", "ban", "permban", "moderator", "confirm", "help", "?"};
+        s32 additionalCmdsCount = 8;
+    #endif
+
+    char** commands = (char**) malloc((sHookedChatCommandsCount + additionalCmdsCount + 1) * sizeof(char*));
+
+    for (s32 i = 0; i < sHookedChatCommandsCount; i++) {
+        struct LuaHookedChatCommand* hook = &sHookedChatCommands[i];
+        commands[i] = strdup(hook->command);
+    }
+
+    for (s32 i = 0; i < additionalCmdsCount; i++) {
+        commands[sHookedChatCommandsCount + i] = strdup(additionalCmds[i]);
+    }
+
+    commands[sHookedChatCommandsCount + additionalCmdsCount] = NULL;
+
+    qsort(commands, sHookedChatCommandsCount + additionalCmdsCount, sizeof(char*), sort_alphabetically);
+
+    return commands;
+}
+
+char** smlua_get_chat_subcommands_list(const char* maincommand) {
+    for (s32 i = 0; i < sHookedChatCommandsCount; i++) {
+        struct LuaHookedChatCommand* hook = &sHookedChatCommands[i];
+        if (strcmp(hook->command, maincommand) == 0) {
+            char* noColorsDesc = remove_color_codes(hook->description);
+            char* startSubcommands = strstr(noColorsDesc, "[");
+            char* endSubcommands = strstr(noColorsDesc, "]");
+
+            if (startSubcommands && endSubcommands && is_valid_subcommand(startSubcommands + 1, endSubcommands)) {
+                *endSubcommands = '\0';
+                char* subcommandsStr = strdup(startSubcommands + 1);
+
+                s32 count = 1;
+                for (s32 j = 0; subcommandsStr[j]; j++) {
+                    if (subcommandsStr[j] == '|') count++;
+                }
+
+                char** subcommands = (char**) malloc((count + 1) * sizeof(char*));
+                char* token = strtok(subcommandsStr, "|");
+                s32 index = 0;
+                while (token) {
+                    subcommands[index++] = strdup(token);
+                    token = strtok(NULL, "|");
+                }
+                subcommands[index] = NULL;
+
+                qsort(subcommands, count, sizeof(char*), sort_alphabetically);
+
+                free(noColorsDesc);
+                free(subcommandsStr);
+                return subcommands;
+            }
+            free(noColorsDesc);
+        }
+    }
+    return NULL;
+}
+
+bool smlua_maincommand_exists(const char* maincommand) {
+    char** commands = smlua_get_chat_maincommands_list();
+    bool result = false;
+
+    s32 i = 0;
+    while (commands[i] != NULL) {
+        if (strcmp(commands[i], maincommand) == 0) {
+            result = true;
+            break;
+        }
+        i++;
+    }
+
+    for (s32 j = 0; commands[j] != NULL; j++) {
+        free(commands[j]);
+    }
+    free(commands);
+
+    return result;
+}
+
+bool smlua_subcommand_exists(const char* maincommand, const char* subcommand) {
+    char** subcommands = smlua_get_chat_subcommands_list(maincommand);
+
+    if (subcommands == NULL) {
+        return false;
+    }
+
+    bool result = false;
+    s32 i = 0;
+    while (subcommands[i] != NULL) {
+        if (strcmp(subcommands[i], subcommand) == 0) {
+            result = true;
+            break;
+        }
+        i++;
+    }
+
+    for (s32 j = 0; subcommands[j] != NULL; j++) {
+        free(subcommands[j]);
+    }
+    free(subcommands);
+
+    return result;
+}
 
   //////////////////////////////
  // hooked sync table change //
@@ -1499,6 +1750,109 @@ int smlua_hook_on_sync_table_change(lua_State* L) {
 
     LUA_STACK_CHECK_END();
     return 1;
+}
+
+  ////////////////////////////
+ // hooked exclamation box //
+////////////////////////////
+
+struct LuaHookedExclamationBox {
+    int readFuncReference;
+    int writeFuncReference;
+    struct Mod* mod;
+};
+
+#define MAX_HOOKED_EXCLAMATION_BOXES 255 // Way more than needed, but better safe than sorry
+
+static struct LuaHookedExclamationBox sHookedExclamationBoxes[MAX_HOOKED_EXCLAMATION_BOXES] = { 0 };
+static int sHookedExclamationBoxesCount = 0;
+
+// Bind to lua
+int smlua_hook_exclamation_box(lua_State* L) {
+    if (L == NULL) { return 0; }
+    if (!smlua_functions_valid_param_count(L, 2)) { return 0; }
+
+    if (gLuaLoadingMod == NULL) {
+        LOG_LUA_LINE("hook_exclamation_box() can only be called on load.");
+        return 0;
+    }
+
+    if (sHookedExclamationBoxesCount > MAX_HOOKED_EXCLAMATION_BOXES) {
+        LOG_LUA_LINE("hook_exclamation_box() calls exceeded maximum references");
+        return 0;
+    }
+
+    int readReference = 0;
+    int readReferenceType = lua_type(L, 1);
+    if (readReferenceType == LUA_TNIL) {
+        // nothing
+    } else if (readReferenceType == LUA_TFUNCTION) {
+        // get reference
+        lua_pushvalue(L, 1);
+        readReference = luaL_ref(L, LUA_REGISTRYINDEX);
+    } else {
+        LOG_LUA_LINE("Hook exclamation box: tried to reference non-function for read function");
+        return 0;
+    }
+
+    int writeReference = 0;
+    int writeReferenceType = lua_type(L, 2);
+    if (writeReferenceType == LUA_TNIL) {
+        // nothing
+    } else if (writeReferenceType == LUA_TFUNCTION) {
+        // get reference
+        lua_pushvalue(L, 2);
+        writeReference = luaL_ref(L, LUA_REGISTRYINDEX);
+    } else {
+        LOG_LUA_LINE("Hook exclamation box: tried to reference non-function for write function");
+        return 0;
+    }
+
+    struct LuaHookedExclamationBox* hooked = &sHookedExclamationBoxes[sHookedExclamationBoxesCount];
+    hooked->readFuncReference = readReference;
+    hooked->writeFuncReference = writeReference;
+    hooked->mod = gLuaActiveMod;
+
+    if (!gSmLuaConvertSuccess) { return 0; }
+    sHookedExclamationBoxesCount++;
+    return 1;
+}
+
+// Called from the exclamation boxes
+struct Object* smlua_call_exclamation_box_hook(struct Object* obj, bool write) {
+    lua_State* L = gLuaState;
+    if (L == NULL) { return NULL; }
+    for (int i = 0; i < sHookedExclamationBoxesCount; i++) {
+        struct LuaHookedExclamationBox* hook = &sHookedExclamationBoxes[i];
+
+        // Push 2 potential callbacks
+        int reference = write ? hook->writeFuncReference : hook->readFuncReference;
+        lua_rawgeti(L, LUA_REGISTRYINDEX, reference);
+
+        // push object
+        smlua_push_object(L, LOT_OBJECT, obj);
+
+        // call the callback
+        if (reference != 0 && 0 != smlua_call_hook(L, 1, 1, 0, hook->mod)) {
+            LOG_LUA("Failed to call the exclamation box callback: %s", (write ? "writeFunction" : "readFunction"));
+            continue;
+        }
+
+        // output the return value
+        struct Object* returnObject = NULL;
+        if (write && reference != 0) {
+            returnObject = (struct Object*)smlua_to_cobject(L, 1, LOT_OBJECT);
+            if (lua_type(L, 1) != LUA_TTABLE || !gSmLuaConvertSuccess) {
+                LOG_LUA("Return value type is invalid for writeFunction: %d", lua_type(L, 1));
+                continue;
+            }
+        }
+        lua_pop(L, 1);
+
+        return returnObject;
+    }
+
+    return NULL;
 }
 
 
@@ -1564,7 +1918,7 @@ void smlua_clear_hooks(void) {
         hooked->mod = NULL;
     }
     sHookedBehaviorsCount = 0;
-    gLuaMarioActionIndex = 0;
+    memset(gLuaMarioActionIndex, 0, sizeof(gLuaMarioActionIndex));
 }
 
 void smlua_bind_hooks(void) {
@@ -1577,4 +1931,5 @@ void smlua_bind_hooks(void) {
     smlua_bind_function(L, "hook_on_sync_table_change", smlua_hook_on_sync_table_change);
     smlua_bind_function(L, "hook_behavior", smlua_hook_behavior);
     smlua_bind_function(L, "update_chat_command_description", smlua_update_chat_command_description);
+    smlua_bind_function(L, "hook_exclamation_box", smlua_hook_exclamation_box);
 }

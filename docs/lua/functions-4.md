@@ -6,6 +6,284 @@
 
 
 ---
+# functions from network_player.h
+
+<br />
+
+
+## [get_network_player_from_area](#get_network_player_from_area)
+
+### Lua Example
+`local NetworkPlayerValue = get_network_player_from_area(courseNum, actNum, levelNum, areaIndex)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| courseNum | `integer` |
+| actNum | `integer` |
+| levelNum | `integer` |
+| areaIndex | `integer` |
+
+### Returns
+[NetworkPlayer](structs.md#NetworkPlayer)
+
+### C Prototype
+`struct NetworkPlayer* get_network_player_from_area(s16 courseNum, s16 actNum, s16 levelNum, s16 areaIndex);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_network_player_from_level](#get_network_player_from_level)
+
+### Lua Example
+`local NetworkPlayerValue = get_network_player_from_level(courseNum, actNum, levelNum)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| courseNum | `integer` |
+| actNum | `integer` |
+| levelNum | `integer` |
+
+### Returns
+[NetworkPlayer](structs.md#NetworkPlayer)
+
+### C Prototype
+`struct NetworkPlayer* get_network_player_from_level(s16 courseNum, s16 actNum, s16 levelNum);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_network_player_smallest_global](#get_network_player_smallest_global)
+
+### Lua Example
+`local NetworkPlayerValue = get_network_player_smallest_global()`
+
+### Parameters
+- None
+
+### Returns
+[NetworkPlayer](structs.md#NetworkPlayer)
+
+### C Prototype
+`struct NetworkPlayer* get_network_player_smallest_global(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [network_player_color_to_palette](#network_player_color_to_palette)
+
+### Lua Example
+`network_player_color_to_palette(np, part, color)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| np | [NetworkPlayer](structs.md#NetworkPlayer) |
+| part | [enum PlayerParts](constants.md#enum-PlayerParts) |
+| color | `Color` |
+
+### Returns
+- None
+
+### C Prototype
+`void network_player_color_to_palette(struct NetworkPlayer *np, enum PlayerParts part, Color color);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [network_player_connected_count](#network_player_connected_count)
+
+### Lua Example
+`local integerValue = network_player_connected_count()`
+
+### Parameters
+- None
+
+### Returns
+- `integer`
+
+### C Prototype
+`u8 network_player_connected_count(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [network_player_from_global_index](#network_player_from_global_index)
+
+### Lua Example
+`local NetworkPlayerValue = network_player_from_global_index(globalIndex)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| globalIndex | `integer` |
+
+### Returns
+[NetworkPlayer](structs.md#NetworkPlayer)
+
+### C Prototype
+`struct NetworkPlayer* network_player_from_global_index(u8 globalIndex);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [network_player_palette_to_color](#network_player_palette_to_color)
+
+### Lua Example
+`network_player_palette_to_color(np, part, out)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| np | [NetworkPlayer](structs.md#NetworkPlayer) |
+| part | [enum PlayerParts](constants.md#enum-PlayerParts) |
+| out | `Color` |
+
+### Returns
+- None
+
+### C Prototype
+`void network_player_palette_to_color(struct NetworkPlayer *np, enum PlayerParts part, Color out);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [network_player_set_description](#network_player_set_description)
+
+### Lua Example
+`network_player_set_description(np, description, r, g, b, a)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| np | [NetworkPlayer](structs.md#NetworkPlayer) |
+| description | `string` |
+| r | `integer` |
+| g | `integer` |
+| b | `integer` |
+| a | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void network_player_set_description(struct NetworkPlayer* np, const char* description, u8 r, u8 g, u8 b, u8 a);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+---
+# functions from network_utils.h
+
+<br />
+
+
+## [network_get_player_text_color_string](#network_get_player_text_color_string)
+
+### Lua Example
+`local stringValue = network_get_player_text_color_string(localIndex)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| localIndex | `integer` |
+
+### Returns
+- `string`
+
+### C Prototype
+`const char* network_get_player_text_color_string(u8 localIndex);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [network_global_index_from_local](#network_global_index_from_local)
+
+### Lua Example
+`local integerValue = network_global_index_from_local(localIndex)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| localIndex | `integer` |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u8 network_global_index_from_local(u8 localIndex);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [network_is_moderator](#network_is_moderator)
+
+### Lua Example
+`local booleanValue = network_is_moderator()`
+
+### Parameters
+- None
+
+### Returns
+- `boolean`
+
+### C Prototype
+`bool network_is_moderator(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [network_is_server](#network_is_server)
+
+### Lua Example
+`local booleanValue = network_is_server()`
+
+### Parameters
+- None
+
+### Returns
+- `boolean`
+
+### C Prototype
+`bool network_is_server(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [network_local_index_from_global](#network_local_index_from_global)
+
+### Lua Example
+`local integerValue = network_local_index_from_global(globalIndex)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| globalIndex | `integer` |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u8 network_local_index_from_global(u8 globalIndex);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+---
 # functions from obj_behaviors.c
 
 <br />
@@ -3475,24 +3753,6 @@
 
 <br />
 
-## [cur_obj_progress_direction_table](#cur_obj_progress_direction_table)
-
-### Lua Example
-`local integerValue = cur_obj_progress_direction_table()`
-
-### Parameters
-- None
-
-### Returns
-- `integer`
-
-### C Prototype
-`s32 cur_obj_progress_direction_table(void);`
-
-[:arrow_up_small:](#)
-
-<br />
-
 ## [cur_obj_push_mario_away](#cur_obj_push_mario_away)
 
 ### Lua Example
@@ -3739,26 +3999,6 @@
 
 ### C Prototype
 `void cur_obj_set_billboard_if_vanilla_cam(void);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [cur_obj_set_direction_table](#cur_obj_set_direction_table)
-
-### Lua Example
-`local integerValue = cur_obj_set_direction_table(a0)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| a0 | `Pointer` <`integer`> |
-
-### Returns
-- `integer`
-
-### C Prototype
-`s32 cur_obj_set_direction_table(s8 *a0);`
 
 [:arrow_up_small:](#)
 
@@ -6767,6 +7007,28 @@
 
 <br />
 
+## [save_file_remove_star_flags](#save_file_remove_star_flags)
+
+### Lua Example
+`save_file_remove_star_flags(fileIndex, courseIndex, starFlagsToRemove)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| fileIndex | `integer` |
+| courseIndex | `integer` |
+| starFlagsToRemove | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void save_file_remove_star_flags(s32 fileIndex, s32 courseIndex, u32 starFlagsToRemove);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [save_file_set_course_coin_score](#save_file_set_course_coin_score)
 
 ### Lua Example
@@ -7384,6 +7646,50 @@
 <br />
 
 
+## [collision_find_ceil](#collision_find_ceil)
+
+### Lua Example
+`local SurfaceValue = collision_find_ceil(x, y, z)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| x | `number` |
+| y | `number` |
+| z | `number` |
+
+### Returns
+[Surface](structs.md#Surface)
+
+### C Prototype
+`struct Surface* collision_find_ceil(f32 x, f32 y, f32 z);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [collision_find_floor](#collision_find_floor)
+
+### Lua Example
+`local SurfaceValue = collision_find_floor(x, y, z)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| x | `number` |
+| y | `number` |
+| z | `number` |
+
+### Returns
+[Surface](structs.md#Surface)
+
+### C Prototype
+`struct Surface* collision_find_floor(f32 x, f32 y, f32 z);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [collision_find_surface_on_ray](#collision_find_surface_on_ray)
 
 ### Lua Example
@@ -7524,6 +7830,26 @@
 
 <br />
 
+## [smlua_level_util_change_area](#smlua_level_util_change_area)
+
+### Lua Example
+`smlua_level_util_change_area(areaIndex)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| areaIndex | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void smlua_level_util_change_area(s32 areaIndex);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [smlua_level_util_get_info](#smlua_level_util_get_info)
 
 ### Lua Example
@@ -7544,6 +7870,26 @@
 
 <br />
 
+## [smlua_level_util_get_info_from_course_num](#smlua_level_util_get_info_from_course_num)
+
+### Lua Example
+`local CustomLevelInfoValue = smlua_level_util_get_info_from_course_num(courseNum)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| courseNum | `integer` |
+
+### Returns
+[CustomLevelInfo](structs.md#CustomLevelInfo)
+
+### C Prototype
+`struct CustomLevelInfo* smlua_level_util_get_info_from_course_num(u8 courseNum);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [smlua_level_util_get_info_from_short_name](#smlua_level_util_get_info_from_short_name)
 
 ### Lua Example
@@ -7558,7 +7904,7 @@
 [CustomLevelInfo](structs.md#CustomLevelInfo)
 
 ### C Prototype
-`struct CustomLevelInfo* smlua_level_util_get_info_from_short_name(char* shortName);`
+`struct CustomLevelInfo* smlua_level_util_get_info_from_short_name(const char* shortName);`
 
 [:arrow_up_small:](#)
 

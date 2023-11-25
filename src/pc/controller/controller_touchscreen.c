@@ -11,6 +11,7 @@
 #include "game/memory.h"
 #include "game/segment2.h"
 #include "gfx_dimensions.h"
+#include "pc/pc_main.h"
 #include "pc/gfx/gfx_pc.h"
 #include "pc/djui/djui_panel.h"
 #include "pc/djui/djui_panel_pause.h"
@@ -20,6 +21,7 @@
 
 #include "controller_api.h"
 #include "controller_touchscreen.h"
+#include "controller_touchscreen_textures.h"
 
 // Mouselook
 s16 before_x = 0;
@@ -64,33 +66,33 @@ ConfigControlElement configControlConfigElements[CONTROL_CONFIG_ELEMENT_COUNT] =
 static struct ControlElement ControlElements[CONTROL_ELEMENT_COUNT] = {
 [TOUCH_STICK] =      {.type = Joystick},
 [TOUCH_MOUSE] =      {.type = Mouse},
-[TOUCH_A] =          {.type = Button, .character = 'a',          .buttonID = A_BUTTON},
-[TOUCH_B] =          {.type = Button, .character = 'b',          .buttonID = B_BUTTON},
-[TOUCH_X] =          {.type = Button, .character = HUD_MULTIPLY, .buttonID = X_BUTTON},
-[TOUCH_Y] =          {.type = Button, .character = 'y',          .buttonID = Y_BUTTON},
-[TOUCH_START] =      {.type = Button, .character = 's',          .buttonID = START_BUTTON},
-[TOUCH_L] =          {.type = Button, .character = 'l',          .buttonID = L_TRIG},
-[TOUCH_R] =          {.type = Button, .character = 'r',          .buttonID = R_TRIG},
-[TOUCH_Z] =          {.type = Button, .character = 'z',          .buttonID = Z_TRIG},
-[TOUCH_CUP] =        {.type = Button, .character = HUD_CUP,      .buttonID = U_CBUTTONS},
-[TOUCH_CDOWN] =      {.type = Button, .character = HUD_CDOWN,    .buttonID = D_CBUTTONS},
-[TOUCH_CLEFT] =      {.type = Button, .character = HUD_CLEFT,    .buttonID = L_CBUTTONS},
-[TOUCH_CRIGHT] =     {.type = Button, .character = HUD_CRIGHT,   .buttonID = R_CBUTTONS},
-[TOUCH_CHAT] =       {.type = Button, .character = HUD_CHAT,     .buttonID = CHAT_BUTTON},
-[TOUCH_PLAYERLIST] = {.type = Button, .character = 'p',          .buttonID = PLAYERLIST_BUTTON},
-[TOUCH_DUP] =        {.type = Button, .character = HUD_UP,       .buttonID = U_JPAD},
-[TOUCH_DDOWN] =      {.type = Button, .character = HUD_DOWN,     .buttonID = D_JPAD},
-[TOUCH_DLEFT] =      {.type = Button, .character = HUD_LEFT,     .buttonID = L_JPAD},
-[TOUCH_DRIGHT] =     {.type = Button, .character = HUD_RIGHT,    .buttonID = R_JPAD},
-[TOUCH_LUA] =        {.type = Button, .character = HUD_LUA,      .buttonID = LUA_BUTTON},
+[TOUCH_A] =          {.type = Button, .character = 'a',                  .buttonID = A_BUTTON},
+[TOUCH_B] =          {.type = Button, .character = 'b',                  .buttonID = B_BUTTON},
+[TOUCH_X] =          {.type = Button, .character = 'x',                  .buttonID = X_BUTTON},
+[TOUCH_Y] =          {.type = Button, .character = 'y',                  .buttonID = Y_BUTTON},
+[TOUCH_START] =      {.type = Button, .character = 's',                  .buttonID = START_BUTTON},
+[TOUCH_L] =          {.type = Button, .character = 'l',                  .buttonID = L_TRIG},
+[TOUCH_R] =          {.type = Button, .character = 'r',                  .buttonID = R_TRIG},
+[TOUCH_Z] =          {.type = Button, .character = 'z',                  .buttonID = Z_TRIG},
+[TOUCH_CUP] =        {.type = Button, .character = TEXTURE_TOUCH_CUP,    .buttonID = U_CBUTTONS},
+[TOUCH_CDOWN] =      {.type = Button, .character = TEXTURE_TOUCH_CDOWN,  .buttonID = D_CBUTTONS},
+[TOUCH_CLEFT] =      {.type = Button, .character = TEXTURE_TOUCH_CLEFT,  .buttonID = L_CBUTTONS},
+[TOUCH_CRIGHT] =     {.type = Button, .character = TEXTURE_TOUCH_CRIGHT, .buttonID = R_CBUTTONS},
+[TOUCH_CHAT] =       {.type = Button, .character = TEXTURE_TOUCH_CHAT,   .buttonID = CHAT_BUTTON},
+[TOUCH_PLAYERLIST] = {.type = Button, .character = 'p',                  .buttonID = PLAYERLIST_BUTTON},
+[TOUCH_DUP] =        {.type = Button, .character = TEXTURE_TOUCH_UP,     .buttonID = U_JPAD},
+[TOUCH_DDOWN] =      {.type = Button, .character = TEXTURE_TOUCH_DOWN,   .buttonID = D_JPAD},
+[TOUCH_DLEFT] =      {.type = Button, .character = TEXTURE_TOUCH_LEFT,   .buttonID = L_JPAD},
+[TOUCH_DRIGHT] =     {.type = Button, .character = TEXTURE_TOUCH_RIGHT,  .buttonID = R_JPAD},
+[TOUCH_LUA] =        {.type = Button, .character = TEXTURE_TOUCH_LUA,    .buttonID = LUA_BUTTON},
 };
 
 // config-only elements
 static struct ControlElement ControlConfigElements[CONTROL_CONFIG_ELEMENT_COUNT] = {
-[TOUCH_CONFIRM] =    {.type = Button, .character = HUD_CHECK,    .buttonID = CONFIRM_BUTTON},
-[TOUCH_CANCEL] =     {.type = Button, .character = HUD_CROSS,    .buttonID = CANCEL_BUTTON},
-[TOUCH_RESET] =      {.type = Button, .character = HUD_RESET,    .buttonID = RESET_BUTTON},
-[TOUCH_SNAP] =       {.type = Button, .character = HUD_SNAP,     .buttonID = SNAP_BUTTON},
+[TOUCH_CONFIRM] =    {.type = Button, .character = TEXTURE_TOUCH_CHECK,  .buttonID = CONFIRM_BUTTON},
+[TOUCH_CANCEL] =     {.type = Button, .character = TEXTURE_TOUCH_CROSS,  .buttonID = CANCEL_BUTTON},
+[TOUCH_RESET] =      {.type = Button, .character = TEXTURE_TOUCH_RESET,  .buttonID = RESET_BUTTON},
+[TOUCH_SNAP] =       {.type = Button, .character = TEXTURE_TOUCH_SNAP,   .buttonID = SNAP_BUTTON},
 };
 
 static u32 ControlElementsLength = sizeof(ControlElements)/sizeof(struct ControlElement);
@@ -348,42 +350,31 @@ void touch_up(struct TouchEvent* event) {
     }
 }
 
-// TODO: move all touchscreen textures into their own array
-ALIGNED8 const u8 texture_button[] = {
-#include "textures/touchcontrols/touch_button.rgba16.inc.c"
-};
-
-ALIGNED8 const u8 texture_button_dark[] = {
-#include "textures/touchcontrols/touch_button_dark.rgba16.inc.c"
-};
-
-ALIGNED8 const u8 texture_hud_lua[] = {
-#include "textures/touchcontrols/custom_hud_lua.rgba16.inc.c"
-};
-
 // Sprite drawing code stolen from src/game/print.c
 
 static void select_button_texture(int dark) {
     gDPPipeSync(gDisplayListHead++);
     
     if (!dark) {
-        gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, texture_button);
+        gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, touch_textures[TEXTURE_TOUCH_BUTTON]);
     } else {
-        gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, texture_button_dark);
+        gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, touch_textures[TEXTURE_TOUCH_BUTTON_DARK]);
     }
 
     gSPDisplayList(gDisplayListHead++, dl_hud_img_load_tex_block);
 }
 
 static void select_char_texture(u8 num) {
-    const u8 *const *glyphs = segmented_to_virtual(main_hud_lut);
-
     gDPPipeSync(gDisplayListHead++);
-    if (num < 87) {
-        gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, texture_hud_lua);
-    } else {
-        gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, glyphs[num - 87]);
+
+    if (num < TOUCH_TEXTURE_COUNT) { // touchscreen symbols
+        gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, touch_textures[num]);
+    } else if (num < 87) { // unknown
+        gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, touch_textures[TEXTURE_TOUCH_LUA]);
+    } else { // letters
+        gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, main_hud_lut[num - 87]);
     }
+
     gSPDisplayList(gDisplayListHead++, dl_hud_img_load_tex_block);
 }
 
@@ -393,7 +384,7 @@ static void DrawSprite(s32 x, s32 y, int scaling) {
 }
 
 void render_touch_controls(void) {
-    if (gGamepadActive && configAutohideTouch) return;
+    if ((gGamepadActive && configAutohideTouch) || !gGameInited) return;
     Mtx *mtx;
 
     mtx = alloc_display_list(sizeof(*mtx));
@@ -454,7 +445,7 @@ void render_touch_controls(void) {
             DrawSprite(pos.x, pos.y, size / 100);
         }
         // trash icon
-        select_char_texture(HUD_TRASH);
+        select_char_texture(TEXTURE_TOUCH_TRASH);
         DrawSprite(SCREEN_WIDTH_API / 2, SCREEN_HEIGHT_API / 2, 2);
     }
 

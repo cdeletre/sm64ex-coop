@@ -42,7 +42,8 @@ in_files = [
     "include/geo_commands.h",
     "include/level_commands.h",
     "src/audio/external.h",
-    "src/game/envfx_snow.h"
+    "src/game/envfx_snow.h",
+    "src/pc/mods/mod_storage.cpp.h"
 ]
 
 exclude_constants = {
@@ -53,7 +54,8 @@ exclude_constants = {
 include_constants = {
     'include/geo_commands.h': ['BACKGROUND'],
     'include/level_commands.h': [ "WARP_CHECKPOINT", "WARP_NO_CHECKPOINT" ],
-    'src/audio/external.h': [ "SEQ_PLAYER" ]
+    'src/audio/external.h': [ "SEQ_PLAYER" ],
+    'src/pc/mods/mod_storage.cpp.h': [ "MAX_KEYS", "MAX_KEY_VALUE_LENGTH" ]
 }
 
 pretend_find = [
@@ -164,7 +166,7 @@ def process_define(filename, line):
             continue
         p = re.sub(r'0x[a-fA-F0-9]+', '', p)
         if re.search('[a-z]', p) != None and 'VERSION_TEXT' not in line:
-            if 'gCurrentObject' not in line:
+            if 'gCurrentObject' not in line and 'gNetworkType' not in line:
                 print('UNRECOGNIZED DEFINE: ' + line)
             return None
 

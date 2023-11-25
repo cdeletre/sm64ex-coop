@@ -614,48 +614,36 @@ void smlua_cobject_init_globals(void) {
         lua_setglobal(L, "gCharacters");
     }
 
-    {
-        smlua_push_object(L, LOT_GLOBALTEXTURES, &gGlobalTextures);
-        lua_setglobal(L, "gTextures");
-    }
+#define EXPOSE_GLOBAL(lot, ptr) \
+    { \
+        smlua_push_object(L, lot, &ptr); \
+        lua_setglobal(L, #ptr); \
+    } \
 
-    {
-        smlua_push_object(L, LOT_GLOBALOBJECTANIMATIONS, &gGlobalObjectAnimations);
-        lua_setglobal(L, "gObjectAnimations");
-    }
+#define EXPOSE_GLOBAL_WITH_NAME(lot, ptr, name) \
+    { \
+        smlua_push_object(L, lot, &ptr); \
+        lua_setglobal(L, name); \
+    } \
 
-    {
-        smlua_push_object(L, LOT_GLOBALOBJECTCOLLISIONDATA, &gGlobalObjectCollisionData);
-        lua_setglobal(L, "gGlobalObjectCollisionData");
-    }
+    EXPOSE_GLOBAL_WITH_NAME(LOT_GLOBALTEXTURES, gGlobalTextures, "gTextures");
 
-    {
-        smlua_push_object(L, LOT_LAKITUSTATE, &gLakituState);
-        lua_setglobal(L, "gLakituState");
-    }
+    EXPOSE_GLOBAL_WITH_NAME(LOT_GLOBALOBJECTANIMATIONS, gGlobalObjectAnimations, "gObjectAnimations");
 
-    {
-        smlua_push_object(L, LOT_SERVERSETTINGS, &gServerSettings);
-        lua_setglobal(L, "gServerSettings");
-    }
+    EXPOSE_GLOBAL(LOT_GLOBALOBJECTCOLLISIONDATA, gGlobalObjectCollisionData);
 
-    {
-        smlua_push_object(L, LOT_LEVELVALUES, &gLevelValues);
-        lua_setglobal(L, "gLevelValues");
-    }
+    EXPOSE_GLOBAL(LOT_LAKITUSTATE, gLakituState);
 
-    {
-        smlua_push_object(L, LOT_BEHAVIORVALUES, &gBehaviorValues);
-        lua_setglobal(L, "gBehaviorValues");
-    }
+    EXPOSE_GLOBAL(LOT_SERVERSETTINGS, gServerSettings);
 
-    {
-        smlua_push_object(L, LOT_PAINTINGVALUES, &gPaintingValues);
-        lua_setglobal(L, "gPaintingValues");
-    }
+    EXPOSE_GLOBAL(LOT_LEVELVALUES, gLevelValues);
+
+    EXPOSE_GLOBAL(LOT_BEHAVIORVALUES, gBehaviorValues);
+
+    EXPOSE_GLOBAL(LOT_PAINTINGVALUES, gPaintingValues);
 }
 
-void smlua_cobject_init_per_file_globals(char* path) {
+void smlua_cobject_init_per_file_globals(const char* path) {
     lua_State* L = gLuaState;
 
     lua_getfield(L, LUA_REGISTRYINDEX, path); // push per-file globals

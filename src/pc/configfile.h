@@ -11,7 +11,7 @@
 #define MAX_BINDS  3
 #define MAX_VOLUME 127
 #define MAX_CONFIG_STRING 64
-#define MAX_PLAYER_STRING 20
+#define MAX_PLAYER_STRING 60
 #define MAX_DESCRIPTION_STRING 20
 
 #define DEFAULT_PORT 7777
@@ -56,6 +56,9 @@ extern unsigned int configKeyDUp[];
 extern unsigned int configKeyDDown[];
 extern unsigned int configKeyDLeft[];
 extern unsigned int configKeyDRight[];
+extern unsigned int configKeyConsole[];
+extern unsigned int configKeyPrevPage[];
+extern unsigned int configKeyNextPage[];
 extern unsigned int configStickDeadzone;
 extern unsigned int configRumbleStrength;
 extern unsigned int configGamepadNumber;
@@ -77,7 +80,6 @@ extern bool         configCameraAnalog;
 #endif
 extern bool         configHUD;
 extern bool         configSkipIntro;
-extern bool         configEnableCheats;
 extern bool         configBubbleDeath;
 extern unsigned int configAmountofPlayers;
 extern char         configJoinIp[];
@@ -96,6 +98,7 @@ extern bool         configMenuRandom;
 extern bool         configMenuDemos;
 extern struct PlayerPalette configPlayerPalette;
 extern struct PlayerPalette configCustomPalette;
+extern bool         configShowFPS;
 extern bool         configUncappedFramerate;
 extern unsigned int configFrameLimit;
 extern unsigned int configDrawDistance;
@@ -118,6 +121,7 @@ extern char         configPassword[];
 extern char         configDestId[];
 extern bool         configFadeoutDistantSounds;
 
+void enable_queued_mods();
 void configfile_load(void);
 void configfile_save(const char *filename);
 const char *configfile_name(void);

@@ -21,7 +21,7 @@ Array<Pair<const char*, GfxData*>> &DynOS_Lvl_GetArray() {
     return sDynosCustomLevelScripts;
 }
 
-LevelScript* DynOS_Lvl_GetScript(char* aScriptEntryName) {
+LevelScript* DynOS_Lvl_GetScript(const char* aScriptEntryName) {
     auto& _CustomLevelScripts = DynOS_Lvl_GetArray();
     for (s32 i = 0; i < _CustomLevelScripts.Count(); ++i) {
         auto& pair = _CustomLevelScripts[i];
@@ -39,11 +39,12 @@ void DynOS_Lvl_ModShutdown() {
 
     auto& _CustomLevelScripts = DynOS_Lvl_GetArray();
     while (_CustomLevelScripts.Count() > 0) {
-        auto& pair = _CustomLevelScripts[0];
+        for (auto& pair : _CustomLevelScripts) {
         DynOS_Tex_Invalid(pair.second);
         Delete(pair.second);
         free((void*)pair.first);
-        _CustomLevelScripts.Remove(0);
+        }
+        _CustomLevelScripts.Clear();
     }
 
     auto& _OverrideLevelScripts = DynosOverrideLevelScripts();
@@ -55,7 +56,7 @@ void DynOS_Lvl_Activate(s32 modIndex, const SysPath &aFilename, const char *aLev
     auto& _OverrideLevelScripts = DynosOverrideLevelScripts();
 
     // make sure vanilla levels were parsed
-    DynOS_Level_GetCount();
+    DynOS_Level_Init();
 
     // check for duplicates
     for (s32 i = 0; i < _CustomLevelScripts.Count(); ++i) {
@@ -83,6 +84,11 @@ void DynOS_Lvl_Activate(s32 modIndex, const SysPath &aFilename, const char *aLev
 
     // Override vanilla script
     auto& newScripts = _Node->mLevelScripts;
+    if (newScripts.Count() <= 0) {
+        PrintError("Could not find level scripts: '%s'", aLevelName);
+        return;
+    }
+
     auto& newScriptNode = newScripts[newScripts.Count() - 1];
     const void* originalScript = DynOS_Builtin_ScriptPtr_GetFromName(newScriptNode->mName.begin());
     if (originalScript == NULL) {

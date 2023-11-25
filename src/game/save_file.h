@@ -80,6 +80,7 @@ extern s8 sUnusedGotGlobalCoinHiScore;
 extern u8 gGotFileCoinHiScore;
 extern u8 gCurrCourseStarFlags;
 extern s8 gLevelToCourseNumTable[];
+extern s8 gCourseNumToLevelNumTable[];
 
 // game progress flags
 #define SAVE_FLAG_FILE_EXISTS            /* 0x00000001 */ (1 << 0)
@@ -128,6 +129,7 @@ extern struct WarpCheckpoint gWarpCheckpoint;
 extern s8 gMainMenuDataModified;
 extern s8 gSaveFileModified;
 
+s8 get_level_num_from_course_num(s16 courseNum);
 s8 get_level_course_num(s16 levelNum);
 void touch_coin_score_age(s32 fileIndex, s32 courseIndex);
 void save_file_do_save(s32 fileIndex, s8 forceSave);
@@ -146,6 +148,7 @@ void save_file_clear_flags(u32 flags);
 u32 save_file_get_flags(void);
 u32 save_file_get_star_flags(s32 fileIndex, s32 courseIndex);
 void save_file_set_star_flags(s32 fileIndex, s32 courseIndex, u32 starFlags);
+void save_file_remove_star_flags(s32 fileIndex, s32 courseIndex, u32 starFlagsToRemove);
 s32 save_file_get_course_coin_score(s32 fileIndex, s32 courseIndex);
 void save_file_set_course_coin_score(s32 fileIndex, s32 courseIndex, u8 coinScore);
 s32 save_file_is_cannon_unlocked(s32 fileIndex, s32 courseIndex);

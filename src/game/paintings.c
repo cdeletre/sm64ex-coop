@@ -916,7 +916,7 @@ void painting_update_floors(struct Painting *painting) {
         if (!consider) {
             continue;
         }
-        // floorEntered is true iff currFloor is true and lastFloor is false
+        // floorEntered is true if currFloor is true and lastFloor is false
         // (Mario just entered the floor on this frame)
         s8 entered = (painting->ripples.lastFloors[i] ^ painting->ripples.currFloors[i]) & painting->ripples.currFloors[i];
         if (entered) {

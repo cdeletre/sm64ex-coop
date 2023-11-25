@@ -40,10 +40,12 @@ static s32 RetrieveCurrentAnimationIndex(struct Object *aObject) {
 
 // Must be called twice, before and after geo_set_animation_globals
 void DynOS_Anim_Swap(void *aPtr) {
+    if (!aPtr) { return; }
+
     static Animation *pDefaultAnimation = NULL;
     static Animation  sGfxDataAnimation;
 
-    // Does the object has a model?
+    // Does the object have a model?
     struct Object *_Object = (struct Object *) aPtr;
     if (!_Object->header.gfx.sharedChild) {
         return;

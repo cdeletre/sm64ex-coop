@@ -30,7 +30,7 @@ static void bhv_camera_lakitu_on_received_post(u8 localIndex) {
 void bhv_camera_lakitu_init(void) {
     if (o->oBehParams2ndByte != CAMERA_LAKITU_BP_FOLLOW_CAMERA) {
         // Despawn unless this is the very beginning of the game
-        if (gNeverEnteredCastle != TRUE) {
+        if (!gNeverEnteredCastle) {
             obj_mark_for_deletion(o);
             return;
         }

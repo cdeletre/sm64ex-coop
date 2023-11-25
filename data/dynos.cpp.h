@@ -656,6 +656,11 @@ struct BuiltinTexInfo {
     s32 bitSize;
 };
 
+struct LvlCmd {
+    u8 mType;
+    u8 mSize;
+};
+
 //
 // Utils
 //
@@ -774,39 +779,18 @@ static type &__##name() {           \
 // Main
 //
 
-void DynOS_Init(void);
-void DynOS_UpdateOpt(void *aPad);
 void *DynOS_SwapCmd(void *aCmd);
 void *DynOS_UpdateCmd(void *aCmd);
 void DynOS_UpdateGfx();
 bool DynOS_IsTransitionActive();
 void DynOS_Mod_Update();
 void DynOS_Mod_Shutdown();
-void DynOS_ReturnToMainMenu();
-
-//
-// Opt
-//
-
-s32 DynOS_Opt_GetValue(const String &aName);
-void DynOS_Opt_SetValue(const String &aName, s32 aValue);
-void DynOS_Opt_AddAction(const String &aFuncName, bool (*aFuncPtr)(const char *), bool aOverwrite);
-void DynOS_Opt_Init();
-void DynOS_Opt_InitVanilla(DynosOption *&aOptionsMenu);
-void DynOS_Opt_Update(OSContPad *aPad);
-bool DynOS_Opt_ControllerUpdate(DynosOption *aOpt, void *aData);
-s32 DynOS_Opt_ControllerGetKeyPressed();
-void DynOS_Opt_LoadConfig(DynosOption *aMenu);
-void DynOS_Opt_SaveConfig(DynosOption *aMenu);
-void DynOS_Opt_DrawMenu(DynosOption *aCurrentOption, DynosOption *aCurrentMenu, DynosOption *aOptionsMenu, DynosOption *aDynosMenu);
-void DynOS_Opt_DrawPrompt(DynosOption *aCurrentMenu, DynosOption *aOptionsMenu, DynosOption *aDynosMenu);
 
 //
 // Gfx
 //
 
 void DynOS_Gfx_Init();
-void DynOS_Gfx_Update();
 void DynOS_Gfx_Free(GfxData *aGfxData);
 
 //
@@ -827,22 +811,18 @@ s32 DynOS_String_Width(const u8 *aStr64);
 // Levels
 //
 
-s32 DynOS_Level_GetCount();
-const s32 *DynOS_Level_GetList();
-s32 DynOS_Level_GetCourse(s32 aLevel);
+void DynOS_Level_Init();
+s8 DynOS_Level_GetCourse(s32 aLevel);
 void DynOS_Level_Override(void* originalScript, void* newScript, s32 modIndex);
 void DynOS_Level_Unoverride();
 const void *DynOS_Level_GetScript(s32 aLevel);
 s32 DynOS_Level_GetModIndex(s32 aLevel);
 bool DynOS_Level_IsVanillaLevel(s32 aLevel);
-const u8 *DynOS_Level_GetName(s32 aLevel, bool aDecaps, bool aAddCourseNumber);
-const u8 *DynOS_Level_GetActName(s32 aLevel, s32 aAct, bool aDecaps, bool aAddStarNumber);
-const u8 *DynOS_Level_GetAreaName(s32 aLevel, s32 aArea, bool aDecaps);
 s16 *DynOS_Level_GetWarp(s32 aLevel, s32 aArea, u8 aWarpId);
 s16 *DynOS_Level_GetWarpEntry(s32 aLevel, s32 aArea);
 s16 *DynOS_Level_GetWarpDeath(s32 aLevel, s32 aArea);
 u64 DynOS_Level_CmdGet(void *aCmd, u64 aOffset);
-void *DynOS_Level_CmdNext(void *aCmd, u64 aCmdSize);
+LvlCmd *DynOS_Level_CmdNext(LvlCmd *aCmd);
 void DynOS_Level_ParseScript(const void *aScript, s32 (*aPreprocessFunction)(u8, void *));
 
 //
@@ -855,8 +835,6 @@ bool DynOS_Warp_ToLevel(s32 aLevel, s32 aArea, s32 aAct);
 bool DynOS_Warp_RestartLevel();
 bool DynOS_Warp_ExitLevel(s32 aDelay);
 bool DynOS_Warp_ToCastle(s32 aLevel);
-void DynOS_Warp_SetParam(s32 aLevel, s32 aIndex);
-const char *DynOS_Warp_GetParamName(s32 aLevel, s32 aIndex);
 
 //
 // Builtin
@@ -938,7 +916,7 @@ void DynOS_Tex_ModShutdown();
 //
 
 Array<Pair<const char*, GfxData*>> &DynOS_Lvl_GetArray();
-LevelScript* DynOS_Lvl_GetScript(char* aScriptEntryName);
+LevelScript* DynOS_Lvl_GetScript(const char* aScriptEntryName);
 void  DynOS_Lvl_Activate(s32 modIndex, const SysPath &aFilePath, const char *aLevelName);
 GfxData* DynOS_Lvl_GetActiveGfx(void);
 const char* DynOS_Lvl_GetToken(u32 index);
@@ -989,7 +967,6 @@ u32 DynOS_Model_GetIdFromAsset(void* asset);
 u32 DynOS_Model_GetIdFromGraphNode(struct GraphNode* aNode);
 void DynOS_Model_OverwriteSlot(u32 srcSlot, u32 dstSlot);
 void DynOS_Model_ClearPool(enum ModelPool aModelPool);
-void DynOS_Model_Update();
 
 //
 // Bin
@@ -1019,7 +996,6 @@ void DynOS_Col_Generate(const SysPath &aPackFolder, Array<Pair<u64, String>> _Ac
 
 DataNode<GeoLayout>* DynOS_Geo_Parse(GfxData* aGfxData, DataNode<GeoLayout>* aNode, bool aDisplayPercent);
 void DynOS_Geo_Write(BinFile *aFile, GfxData *aGfxData, DataNode<GeoLayout> *aNode);
-DataNode<GeoLayout>** DynOS_Geo_GetLoading(void);
 void DynOS_Geo_Load(BinFile *aFile, GfxData *aGfxData);
 
 DataNode<Gfx>* DynOS_Gfx_Parse(GfxData* aGfxData, DataNode<Gfx>* aNode);

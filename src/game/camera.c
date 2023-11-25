@@ -42,6 +42,8 @@ u8 gCameraUseCourseSpecificSettings = TRUE;
 u8 gOverrideFreezeCamera = FALSE;
 enum RomhackCameraOverride gOverrideRomhackCamera = RCO_ALL;
 u8 gRomhackCameraAllowCentering = TRUE;
+u8 gOverrideAllowToxicGasCamera = FALSE;
+u8 gRomhackCameraAllowDpad = FALSE;
 
 /**
  * @file camera.c
@@ -2366,11 +2368,13 @@ s16 update_default_camera(struct Camera *c) {
     }
 
     // Make Lakitu fly above the gas
+    if (gOverrideAllowToxicGasCamera || dynos_level_is_vanilla_level(gCurrLevelNum)) {
     gasHeight = find_poison_gas_level(cPos[0], cPos[2]);
     if (gasHeight != gLevelValues.floorLowerLimit) {
         if ((gasHeight += 130.f) > c->pos[1]) {
             c->pos[1] = gasHeight;
         }
+    }
     }
 
     if (sMarioCamState->action & ACT_FLAG_HANGING || sMarioCamState->action == ACT_RIDING_HOOT) {
@@ -2746,20 +2750,21 @@ void move_into_c_up(struct Camera *c) {
     if (!c) { return; }
     struct LinearTransitionPoint *start = &sModeInfo.transitionStart;
     struct LinearTransitionPoint *end = &sModeInfo.transitionEnd;
+    s16 modInfoMax = MAX(sModeInfo.frame, 1);
 
     f32 dist  = end->dist  - start->dist;
     s16 pitch = end->pitch - start->pitch;
     s16 yaw   = end->yaw   - start->yaw;
 
     // Linearly interpolate from start to end position's polar coordinates
-    dist  = start->dist  + dist  * sModeInfo.frame / sModeInfo.max;
-    pitch = start->pitch + pitch * sModeInfo.frame / sModeInfo.max;
-    yaw   = start->yaw   + yaw   * sModeInfo.frame / sModeInfo.max;
+    dist  = start->dist  + dist  * sModeInfo.frame / modInfoMax;
+    pitch = start->pitch + pitch * sModeInfo.frame / modInfoMax;
+    yaw   = start->yaw   + yaw   * sModeInfo.frame / modInfoMax;
 
     // Linearly interpolate the focus from start to end
-    c->focus[0] = start->focus[0] + (end->focus[0] - start->focus[0]) * sModeInfo.frame / sModeInfo.max;
-    c->focus[1] = start->focus[1] + (end->focus[1] - start->focus[1]) * sModeInfo.frame / sModeInfo.max;
-    c->focus[2] = start->focus[2] + (end->focus[2] - start->focus[2]) * sModeInfo.frame / sModeInfo.max;
+    c->focus[0] = start->focus[0] + (end->focus[0] - start->focus[0]) * sModeInfo.frame / modInfoMax;
+    c->focus[1] = start->focus[1] + (end->focus[1] - start->focus[1]) * sModeInfo.frame / modInfoMax;
+    c->focus[2] = start->focus[2] + (end->focus[2] - start->focus[2]) * sModeInfo.frame / modInfoMax;
 
     vec3f_add(c->focus, sMarioCamState->pos);
     vec3f_set_dist_and_angle(c->focus, c->pos, dist, pitch, yaw);
@@ -2768,7 +2773,7 @@ void move_into_c_up(struct Camera *c) {
     sMarioCamState->headRotation[1] = 0;
 
     // Finished zooming in
-    if (++sModeInfo.frame == sModeInfo.max) {
+    if (++sModeInfo.frame >= modInfoMax) {
         gCameraMovementFlags &= ~CAM_MOVING_INTO_MODE;
     }
 }
@@ -2961,7 +2966,7 @@ void set_camera_mode(struct Camera *c, s16 mode, s16 frames) {
 
         sModeInfo.newMode = (mode != -1) ? mode : sModeInfo.lastMode;
         sModeInfo.lastMode = c->mode;
-        sModeInfo.max = frames;
+        sModeInfo.max = MAX(frames, 1);
         sModeInfo.frame = 1;
 
         c->mode = sModeInfo.newMode;
@@ -3109,10 +3114,12 @@ void update_lakitu(struct Camera *c) {
     gLakituState.defMode = c->defMode;
 }
 
+extern bool gIsDemoActive;
 static void update_romhack_camera_override(struct Camera *c) {
     if (gOverrideRomhackCamera == RCO_NONE) { return; }
     if (c->mode == CAMERA_MODE_ROM_HACK) { return; }
     if (dynos_level_is_vanilla_level(gCurrLevelNum)) { return; }
+    if (gIsDemoActive) { return; }
 
     if (gOverrideRomhackCamera == RCO_ALL_EXCEPT_BOWSER) {
         if (gCurrLevelNum == LEVEL_BOWSER_1 || gCurrLevelNum == LEVEL_BOWSER_2 || gCurrLevelNum == LEVEL_BOWSER_3) {
@@ -3603,13 +3610,13 @@ void init_camera(struct Camera *c) {
     if (sSoftResettingCamera) {
         c->cutscene = 0;
         sSoftResettingCamera = FALSE;
-    }
-
+    } else {
     // Set the camera pos to marioOffset (relative to Mario), added to Mario's position
     offset_rotated(c->pos, sMarioCamState->pos, marioOffset, sMarioCamState->faceAngle);
     if (c->mode != CAMERA_MODE_BEHIND_MARIO) {
         c->pos[1] = find_floor(sMarioCamState->pos[0], sMarioCamState->pos[1] + 100.f,
                                sMarioCamState->pos[2], &floor) + 125.f;
+    }
     }
     vec3f_copy(c->focus, sMarioCamState->pos);
     vec3f_copy(gLakituState.curPos, c->pos);
@@ -7149,19 +7156,19 @@ s32 rotate_camera_around_walls(struct Camera *c, Vec3f cPos, s16 *avoidYaw, s16 
  */
 void find_mario_floor_and_ceil(struct PlayerGeometry *pg) {
     if (!pg) { return; }
+    if (!sMarioCamState) { return; }
+
     struct Surface *surf = NULL;
     s16 tempCheckingSurfaceCollisionsForCamera = gCheckingSurfaceCollisionsForCamera;
     gCheckingSurfaceCollisionsForCamera = TRUE;
 
-    if (find_floor(sMarioCamState->pos[0], sMarioCamState->pos[1] + 10.f,
-                   sMarioCamState->pos[2], &surf) != gLevelValues.floorLowerLimit) {
+    if (find_floor(sMarioCamState->pos[0], sMarioCamState->pos[1] + 10.f, sMarioCamState->pos[2], &surf) != gLevelValues.floorLowerLimit && surf != NULL) {
         pg->currFloorType = surf->type;
     } else {
         pg->currFloorType = 0;
     }
 
-    if (find_ceil(sMarioCamState->pos[0], sMarioCamState->pos[1] - 10.f,
-                  sMarioCamState->pos[2], &surf) != gLevelValues.cellHeightLimit) {
+    if (find_ceil(sMarioCamState->pos[0], sMarioCamState->pos[1] - 10.f, sMarioCamState->pos[2], &surf) != gLevelValues.cellHeightLimit && surf != NULL) {
         pg->currCeilType = surf->type;
     } else {
         pg->currCeilType = 0;
@@ -12106,6 +12113,21 @@ static f32 sRomHackWaterFocus = 0;
 static f32 sRomHackWaterPitchOffset = 0;
 u8 gRomHackCamSetCollisions = TRUE;
 
+s32 snap_to_45_degrees(s16 angle) {
+    if (angle % DEGREES(45)) {
+        s16 d1 = ABS(angle) % DEGREES(45);
+        s16 d2 = DEGREES(45) - d1;
+        if (angle > 0) {
+            if (d1 < d2) return angle - d1;
+            else return angle + d2;
+        } else {
+            if (d1 < d2) return angle + d1;
+            else return angle - d2;
+        }
+    }
+    return angle;
+}
+
 void rom_hack_cam_set_collisions(u8 enable) {
     gRomHackCamSetCollisions = enable;
 }
@@ -12252,13 +12274,28 @@ void mode_rom_hack_camera(struct Camera *c) {
         sRomHackZoom = 0;
     }
 
+    // Thank you hackersm64
+    if (gRomhackCameraAllowDpad) {
+        if (gMarioStates[0].controller->buttonPressed & U_JPAD) {
+            sRomHackYaw = DEGREES(180 + 90) - gMarioStates[0].faceAngle[1];
+        } else if (gMarioStates[0].controller->buttonDown & L_JPAD) {
+            sRomHackYaw -= DEGREES(1) * (camera_config_is_x_inverted() ? -1 : 1);
+        } else if (gMarioStates[0].controller->buttonDown & R_JPAD) {
+            sRomHackYaw += DEGREES(1) * (camera_config_is_x_inverted() ? -1 : 1);
+        } else if (gMarioStates[0].controller->buttonPressed & D_JPAD) {
+            sRomHackYaw = snap_to_45_degrees(sRomHackYaw);
+        }
+    }
+
     // center
     if (gMarioStates[0].controller->buttonPressed & L_TRIG && gRomhackCameraAllowCentering) {
         center_rom_hack_camera();
     }
 
     // clamp yaw
+    if (!gRomhackCameraAllowDpad) {
     sRomHackYaw = (sRomHackYaw / DEGREES(45)) * DEGREES(45);
+    }
 
     // update the camera focus and such
     Vec3f pos;

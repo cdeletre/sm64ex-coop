@@ -5,7 +5,7 @@ from common import *
 
 rejects = ""
 integer_types = ["u8", "u16", "u32", "u64", "s8", "s16", "s32", "s64", "int"]
-number_types = ["f32", "float"]
+number_types = ["f32", "float", "f64", "double"]
 param_override_build = {}
 out_filename = 'src/pc/lua/smlua_functions_autogen.c'
 out_filename_docs = 'docs/lua/functions%s.md'
@@ -30,6 +30,7 @@ in_files = [
     "src/game/rumble_init.c",
     "src/pc/djui/djui_popup.h",
     "src/pc/network/network_utils.h",
+    "src/pc/djui/djui_console.h",
     "src/pc/djui/djui_chat_message.h",
     "src/game/interaction.h",
     "src/game/level_info.h",
@@ -56,7 +57,7 @@ in_files = [
     "src/game/object_list_processor.h",
     "src/game/behavior_actions.h",
     "src/game/mario_misc.h",
-    "src/pc/mods/mod_storage.h",
+    "src/pc/mods/mod_storage.c.h",
     "src/pc/utils/misc.h",
     "src/game/level_update.h",
     "src/game/area.h",
@@ -68,12 +69,12 @@ override_allowed_functions = {
     "src/audio/external.h":                 [ " play_", "fade", "current_background", "stop_", "sound_banks", "drop_queued_background_music" ],
     "src/game/rumble_init.c":               [ "queue_rumble_", "reset_rumble_timers" ],
     "src/pc/djui/djui_popup.h" :            [ "create" ],
-    "src/game/save_file.h":                 [ "save_file_get_", "save_file_set_flags", "save_file_clear_flags", "save_file_reload", "save_file_erase_current_backup_save", "save_file_set_star_flags", "save_file_is_cannon_unlocked", "touch_coin_score_age", "save_file_set_course_coin_score", "save_file_do_save" ],
+    "src/game/save_file.h":                 [ "save_file_get_", "save_file_set_flags", "save_file_clear_flags", "save_file_reload", "save_file_erase_current_backup_save", "save_file_set_star_flags", "save_file_is_cannon_unlocked", "touch_coin_score_age", "save_file_set_course_coin_score", "save_file_do_save", "save_file_remove_star_flags" ],
     "src/pc/lua/utils/smlua_model_utils.h": [ "smlua_model_util_get_id" ],
     "src/game/object_list_processor.h":     [ "set_object_respawn_info_bits" ],
     "src/game/mario_misc.h":                [ "bhv_toad.*", "bhv_unlock_door.*" ],
     "src/pc/utils/misc.h":                  [ "update_all_mario_stars" ],
-    "src/game/level_update.h":              [ "level_trigger_warp", "get_painting_warp_node", "initiate_painting_warp" ],
+    "src/game/level_update.h":              [ "level_trigger_warp", "get_painting_warp_node", "initiate_painting_warp", "warp_special", "lvl_set_current_level" ],
     "src/game/area.h":                      [ "area_get_warp_node" ],
     "src/engine/level_script.h":            [ "area_create_warp_node" ],
     "src/game/ingame_menu.h":               [ "set_min_dialog_width", "set_dialog_override_pos", "reset_dialog_override_pos", "set_dialog_override_color", "reset_dialog_override_color" ]
@@ -91,23 +92,26 @@ override_disallowed_functions = {
     "src/game/mario_actions_object.c":     [ "^[us]32 act_.*" ],
     "src/game/mario_actions_stationary.c": [ "^[us]32 act_.*" ],
     "src/game/mario_actions_submerged.c":  [ "^[us]32 act_.*" ],
-    "src/game/mario_step.h":               [ " stub_mario_step", "transfer_bully_speed"],
+    "src/game/mario_step.h":               [ " stub_mario_step", "transfer_bully_speed" ],
     "src/game/mario.h":                    [ " init_mario" ],
+    "src/pc/djui/djui_console.h":          [ " djui_console_create", "djui_console_message_create" ],
     "src/pc/djui/djui_chat_message.h":     [ "create_from" ],
     "src/game/interaction.h":              [ "process_interactions", "_handle_" ],
     "src/game/sound_init.h":               [ "_loop_", "thread4_", "set_sound_mode" ],
     "src/pc/network/network_utils.h":      [ "network_get_player_text_color[^_]" ],
     "src/pc/network/network_player.h":     [ "_init", "_connected[^_]", "_shutdown", "_disconnected", "_update", "construct_player_popup" ],
-    "src/game/object_helpers.c":           [ "spawn_obj", "^bhv_", "abs[fi]", "^bit_shift", "_debug$", "^stub_", "_set_model" ],
+    "src/game/object_helpers.c":           [ "spawn_obj", "^bhv_", "abs[fi]", "^bit_shift", "_debug$", "^stub_", "_set_model", "cur_obj_set_direction_table", "cur_obj_progress_direction_table" ],
     "src/game/obj_behaviors.c":            [ "debug_" ],
     "src/game/obj_behaviors_2.c":          [ "wiggler_jumped_on_attack_handler", "huge_goomba_weakly_attacked" ],
     "src/game/spawn_sound.c":              [ "spawner" ],
+    "src/game/level_info.h":               [ "_name_table" ],
     "src/pc/lua/utils/smlua_obj_utils.h":  [ "spawn_object_remember_field" ],
     "src/game/camera.h":                   [ "update_camera", "init_camera", "stub_camera", "^reset_camera", "move_point_along_spline" ],
     "src/game/behavior_actions.h":         [ "bhv_dust_smoke_loop", "bhv_init_room" ],
     "src/pc/lua/utils/smlua_audio_utils.h": [ "smlua_audio_utils_override", "audio_custom_shutdown"],
     "src/pc/djui/djui_hud_utils.h":         [ "djui_hud_render_texture", "djui_hud_render_texture_raw", "djui_hud_render_texture_tile", "djui_hud_render_texture_tile_raw" ],
     "src/pc/lua/utils/smlua_level_utils.h": [ "smlua_level_util_reset" ],
+    "src/pc/lua/utils/smlua_text_utils.h":  [ "smlua_text_utils_reset_all" ],
     "src/pc/lua/utils/smlua_anim_utils.h":  [ "smlua_anim_util_reset", "smlua_anim_util_register_animation" ],
     "src/pc/network/lag_compensation.h":    [ "lag_compensation_clear", "lag_compensation_store" ]
 }

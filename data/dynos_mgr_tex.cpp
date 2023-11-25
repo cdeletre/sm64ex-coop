@@ -110,6 +110,7 @@ static u8 *IA16_RGBA32(const u8 *aData, u64 aLength) {
 }
 
 static u8 *CI4_RGBA32(const u8 *aData, u64 aLength, const u8 *aPalette) {
+    if (!aPalette) { return NULL; }
     u8 *_Buffer = New<u8>(aLength * 8);
     u8 *pBuffer = _Buffer;
     for (u64 i = 0; i != aLength; ++i) {
@@ -139,6 +140,7 @@ static u8 *CI4_RGBA32(const u8 *aData, u64 aLength, const u8 *aPalette) {
 }
 
 static u8 *CI8_RGBA32(const u8 *aData, u64 aLength, const u8 *aPalette) {
+    if (!aPalette) { return NULL; }
     u8 *_Buffer = New<u8>(aLength * 4);
     u8 *pBuffer = _Buffer;
     for (u64 i = 0; i != aLength; ++i) {
@@ -379,6 +381,7 @@ void DynOS_Tex_Activate(DataNode<TexData>* aNode, bool aCustomTexture) {
 
 void DynOS_Tex_Deactivate(DataNode<TexData>* aNode) {
     if (!aNode) { return; }
+    aNode->mData->mUploaded = false;
 
     // remove from custom textures
     auto& _DynosCustomTexs = DynosCustomTexs();

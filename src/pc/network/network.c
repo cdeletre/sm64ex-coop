@@ -9,7 +9,6 @@
 #include "src/game/hardcoded.h"
 #include "src/game/scroll_targets.h"
 #include "pc/configfile.h"
-#include "pc/cheats.h"
 #include "pc/djui/djui.h"
 #include "pc/djui/djui_panel.h"
 #include "pc/djui/djui_hud_utils.h"
@@ -111,7 +110,7 @@ bool network_init(enum NetworkType inNetworkType, bool reconnecting) {
     gServerSettings.playerKnockbackStrength = configPlayerKnockbackStrength;
     gServerSettings.stayInLevelAfterStar = configStayInLevelAfterStar;
     gServerSettings.skipIntro = configSkipIntro;
-    gServerSettings.enableCheats = configEnableCheats;
+    gServerSettings.enableCheats = 0;
     gServerSettings.bubbleDeath = configBubbleDeath;
     gServerSettings.maxPlayers = configAmountofPlayers;
 #if defined(RAPI_DUMMY) || defined(WAPI_DUMMY)
@@ -230,9 +229,14 @@ void network_send_to(u8 localIndex, struct Packet* p) {
         packet_set_destination(p, 0);
         localIndex = (gNetworkPlayerServer != NULL) ? gNetworkPlayerServer->localIndex : 0;
     } else {
+        u8 idx = (localIndex == 0) ? p->localIndex : localIndex;
+        if (idx >= MAX_PLAYERS) {
+            LOG_ERROR("Could not set destination to %u", idx);
+            return;
+        }
         packet_set_destination(p, p->requestBroadcast
                                 ? PACKET_DESTINATION_BROADCAST
-                                : gNetworkPlayers[(localIndex == 0) ? p->localIndex : localIndex].globalIndex);
+                                : gNetworkPlayers[idx].globalIndex);
     }
 
     // sanity checks
@@ -246,6 +250,10 @@ void network_send_to(u8 localIndex, struct Packet* p) {
     }
 
     if (gNetworkType == NT_SERVER) {
+        if (localIndex >= MAX_PLAYERS) {
+            LOG_ERROR("Could not get network player %u", localIndex);
+            return;
+        }
         struct NetworkPlayer* np = &gNetworkPlayers[localIndex];
         // don't send a packet to a player that can't receive it
         if (p->levelAreaMustMatch) {
@@ -322,7 +330,9 @@ void network_send_to(u8 localIndex, struct Packet* p) {
 
     network_remember_debug_packet(p->packetType, true);
 
+    if (localIndex < MAX_PLAYERS) {
     gNetworkPlayers[localIndex].lastSent = clock_elapsed();
+    }
 }
 
 void network_send(struct Packet* p) {
@@ -373,6 +383,7 @@ void network_send(struct Packet* p) {
 }
 
 void network_receive(u8 localIndex, void* addr, u8* data, u16 dataLength) {
+
     // receive packet
     struct Packet p = {
         .localIndex = localIndex,
@@ -639,8 +650,8 @@ void network_shutdown(bool sendLeaving, bool exiting, bool popup, bool reconnect
     gLightingColor[2] = 255;
     gOverrideBackground = -1;
     gOverrideEnvFx = -1;
-    gDjuiRenderBehindHud = false;
     gRomhackCameraAllowCentering = TRUE;
+    gRomhackCameraAllowDpad = FALSE;
     camera_reset_overrides();
     dynos_mod_shutdown();
     mods_clear(&gActiveMods);
@@ -660,6 +671,7 @@ void network_shutdown(bool sendLeaving, bool exiting, bool popup, bool reconnect
     gOverrideDialogPos = 0;
     gOverrideDialogColor = 0;
     gDialogMinWidth = 0;
+    gOverrideAllowToxicGasCamera = FALSE;
 
     struct Controller* cnt = gMarioStates[0].controller;
     cnt->rawStickX = 0;
@@ -680,9 +692,6 @@ void network_shutdown(bool sendLeaving, bool exiting, bool popup, bool reconnect
     extern s16 gMenuMode;
     gMenuMode = -1;
 
-    extern bool gIsModerator;
-    gIsModerator = false;
-
     djui_panel_shutdown();
     extern bool gDjuiInMainMenu;
     if (!gDjuiInMainMenu) {
@@ -694,4 +703,6 @@ void network_shutdown(bool sendLeaving, bool exiting, bool popup, bool reconnect
     discord_activity_update();
 #endif
     packet_ordered_clear_all();
+
+    djui_reset_popup_disabled_override();
 }

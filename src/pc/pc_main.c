@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #ifdef TARGET_ANDROID
 #include <sys/stat.h>
@@ -17,21 +19,12 @@
 #include "network/network.h"
 #include "lua/smlua.h"
 
-#include "gfx/gfx_pc.h"
-
-#include "gfx/gfx_opengl.h"
-#include "gfx/gfx_direct3d11.h"
-#include "gfx/gfx_direct3d12.h"
-
-#include "gfx/gfx_dxgi.h"
-#include "gfx/gfx_sdl.h"
-#include "gfx/gfx_dummy.h"
-
 #include "audio/audio_api.h"
 #include "audio/audio_sdl.h"
 #include "audio/audio_null.h"
 
 #include "pc_main.h"
+#include "loading.h"
 #include "cliopts.h"
 #include "configfile.h"
 #include "controller/controller_api.h"
@@ -61,6 +54,7 @@
 #include "pc/djui/djui_unicode.h"
 #include "pc/djui/djui_panel.h"
 #include "pc/djui/djui_panel_modlist.h"
+#include "pc/djui/djui_fps_display.h"
 #include "pc/debuglog.h"
 #include "pc/utils/misc.h"
 
@@ -94,29 +88,23 @@ f64 gGameSpeed = 1.0f; // TODO: should probably remove
 static const f64 sFrameTime = (1.0 / ((double)FRAMERATE));
 static f64 sFrameTargetTime = 0;
 static f64 sFrameTimeStart;
-static f64 sLastFrameTimeStart;
-static f32 sAvgFrames = 1;
-static f32 sAvgFps = 0;
+
+bool gGameInited = false;
+bool gGfxInited = false;
 
 static struct AudioAPI *audio_api;
-struct GfxWindowManagerAPI *wm_api;
-static struct GfxRenderingAPI *rendering_api;
+struct GfxWindowManagerAPI *wm_api = &WAPI;
 
 extern void gfx_run(Gfx *commands);
 extern void thread5_game_loop(void *arg);
 extern void create_next_audio_buffer(s16 *samples, u32 num_samples);
 void game_loop_one_iteration(void);
 
-void dispatch_audio_sptask(UNUSED struct SPTask *spTask) {
-}
-
-void set_vblank_handler(UNUSED s32 index, UNUSED struct VblankHandler *handler, UNUSED OSMesgQueue *queue, UNUSED OSMesg *msg) {
-}
-
-static bool inited = false;
+void dispatch_audio_sptask(UNUSED struct SPTask *spTask) {}
+void set_vblank_handler(UNUSED s32 index, UNUSED struct VblankHandler *handler, UNUSED OSMesgQueue *queue, UNUSED OSMesg *msg) {}
 
 void send_display_list(struct SPTask *spTask) {
-    if (!inited) return;
+    if (!gGameInited) { return; }
     gfx_run((Gfx *)spTask->task.t.data_ptr);
 }
 
@@ -128,17 +116,29 @@ void send_display_list(struct SPTask *spTask) {
 #define SAMPLES_LOW 528
 #endif
 
+extern void patch_mtx_before(void);
+extern void patch_screen_transition_before(void);
+extern void patch_title_screen_before(void);
+extern void patch_dialog_before(void);
+extern void patch_hud_before(void);
+extern void patch_paintings_before(void);
+extern void patch_bubble_particles_before(void);
+extern void patch_snow_particles_before(void);
+extern void patch_djui_before(void);
+extern void patch_djui_hud_before(void);
+
+extern void patch_mtx_interpolated(f32 delta);
+extern void patch_screen_transition_interpolated(f32 delta);
+extern void patch_title_screen_interpolated(f32 delta);
+extern void patch_dialog_interpolated(f32 delta);
+extern void patch_hud_interpolated(f32 delta);
+extern void patch_paintings_interpolated(f32 delta);
+extern void patch_bubble_particles_interpolated(f32 delta);
+extern void patch_snow_particles_interpolated(f32 delta);
+extern void patch_djui_interpolated(f32 delta);
+extern void patch_djui_hud(f32 delta);
+
 static void patch_interpolations_before(void) {
-    extern void patch_mtx_before(void);
-    extern void patch_screen_transition_before(void);
-    extern void patch_title_screen_before(void);
-    extern void patch_dialog_before(void);
-    extern void patch_hud_before(void);
-    extern void patch_paintings_before(void);
-    extern void patch_bubble_particles_before(void);
-    extern void patch_snow_particles_before(void);
-    extern void patch_djui_before(void);
-    extern void patch_djui_hud_before(void);
     patch_mtx_before();
     patch_screen_transition_before();
     patch_title_screen_before();
@@ -152,16 +152,6 @@ static void patch_interpolations_before(void) {
 }
 
 static inline void patch_interpolations(f32 delta) {
-    extern void patch_mtx_interpolated(f32 delta);
-    extern void patch_screen_transition_interpolated(f32 delta);
-    extern void patch_title_screen_interpolated(f32 delta);
-    extern void patch_dialog_interpolated(f32 delta);
-    extern void patch_hud_interpolated(f32 delta);
-    extern void patch_paintings_interpolated(f32 delta);
-    extern void patch_bubble_particles_interpolated(f32 delta);
-    extern void patch_snow_particles_interpolated(f32 delta);
-    extern void patch_djui_interpolated(f32 delta);
-    extern void patch_djui_hud(f32 delta);
     patch_mtx_interpolated(delta);
     patch_screen_transition_interpolated(delta);
     patch_title_screen_interpolated(delta);
@@ -174,19 +164,17 @@ static inline void patch_interpolations(f32 delta) {
     patch_djui_hud(delta);
 }
 
-
 void produce_interpolation_frames_and_delay(void) {
+    u64 frames = 0;
+    f64 curTime = clock_elapsed_f64();
+
     gRenderingInterpolated = true;
 
     // sanity check target time to deal with hangs and such
-    f64 curTime = clock_elapsed_f64();
-    if (fabs(sFrameTargetTime - curTime) > 1) {
-        sFrameTargetTime = curTime - 0.01f;
-    }
+    if (fabs(sFrameTargetTime - curTime) > 1) { sFrameTargetTime = curTime - 0.01f; }
 
-    u64 frames = 0;
-    while ((curTime = clock_elapsed_f64()) < sFrameTargetTime) {
         // interpolate and render
+    while ((curTime = clock_elapsed_f64()) < sFrameTargetTime) {
         gfx_start_frame();
         f32 delta = MIN((curTime - sFrameTimeStart) / (sFrameTargetTime - sFrameTimeStart), 1);
         gRenderingDelta = delta;
@@ -196,72 +184,64 @@ void produce_interpolation_frames_and_delay(void) {
 
         // delay
         if (!configUncappedFramerate) {
-            f64 targetDelta = 1.0 / (f64)configFrameLimit;
+            f64 targetDelta = 1.0 / (f64) configFrameLimit;
             f64 now = clock_elapsed_f64();
             f64 actualDelta = now - curTime;
             if (actualDelta < targetDelta) {
                 f64 delay = ((targetDelta - actualDelta) * 1000.0);
-                wm_api->delay((u32)delay);
+                WAPI.delay((u32) delay);
             }
         }
 
         frames++;
     }
 
-    f32 fps = frames / (clock_elapsed_f64() - sFrameTimeStart);
-    sAvgFps = sAvgFps * 0.6 + fps * 0.4;
-    sAvgFrames = sAvgFrames * 0.9 + frames * 0.1;
+    static u64 sFramesSinceFpsUpdate = 0;
+    static u64 sLastFpsUpdateTime = 0;
+
+    sFramesSinceFpsUpdate += frames;
+
+    u64 sCurrentFpsUpdateTime = (u64)clock_elapsed_f64();
+    if (sLastFpsUpdateTime != sCurrentFpsUpdateTime) {
+        u32 fps = sFramesSinceFpsUpdate / ((f32)(sCurrentFpsUpdateTime - sLastFpsUpdateTime));
+        sLastFpsUpdateTime = sCurrentFpsUpdateTime;
+        sFramesSinceFpsUpdate = 0;
+
+        djui_fps_display_update(floor(fps));
+    }
+
     sFrameTimeStart = sFrameTargetTime;
     sFrameTargetTime += sFrameTime * gGameSpeed;
     gRenderingInterpolated = false;
-
-    //printf(">>> fpt: %llu, fps: %f :: %f\n", frames, sAvgFps, fps);
 }
 
-void produce_one_frame(void) {
-    CTX_BEGIN(CTX_NETWORK);
-    network_update();
-    CTX_END(CTX_NETWORK);
-
-    CTX_BEGIN(CTX_INTERP);
-    patch_interpolations_before();
-    CTX_END(CTX_INTERP);
-
+inline static void buffer_audio(void) {
     const f32 master_mod = (f32)configMasterVolume / 127.0f;
     set_sequence_player_volume(SEQ_PLAYER_LEVEL, (f32)configMusicVolume / 127.0f * master_mod);
     set_sequence_player_volume(SEQ_PLAYER_SFX, (f32)configSfxVolume / 127.0f * master_mod);
     set_sequence_player_volume(SEQ_PLAYER_ENV, (f32)configEnvVolume / 127.0f * master_mod);
 
-    CTX_BEGIN(CTX_GAME_LOOP);
-    game_loop_one_iteration();
-    CTX_END(CTX_GAME_LOOP);
-
-    CTX_BEGIN(CTX_SMLUA);
-    smlua_update();
-    CTX_END(CTX_SMLUA);
-
-    thread6_rumble_loop(NULL);
-
-    CTX_BEGIN(CTX_AUDIO);
     int samples_left = audio_api->buffered();
     u32 num_audio_samples = samples_left < audio_api->get_desired_buffered() ? SAMPLES_HIGH : SAMPLES_LOW;
-    //printf("Audio samples: %d %u\n", samples_left, num_audio_samples);
     s16 audio_buffer[SAMPLES_HIGH * 2 * 2];
     for (s32 i = 0; i < 2; i++) {
-        /*if (audio_cnt-- == 0) {
-            audio_cnt = 2;
-        }
-        u32 num_audio_samples = audio_cnt < 2 ? 528 : 544;*/
         create_next_audio_buffer(audio_buffer + i * (num_audio_samples * 2), num_audio_samples);
     }
-    //printf("Audio samples before submitting: %d\n", audio_api->buffered());
-
     audio_api->play((u8 *)audio_buffer, 2 * num_audio_samples * 4);
-    CTX_END(CTX_AUDIO);
+}
 
-    CTX_BEGIN(CTX_RENDER);
-    produce_interpolation_frames_and_delay();
-    CTX_END(CTX_RENDER);
+void produce_one_frame(void) {
+    CTX_EXTENT(CTX_NETWORK, network_update);
+
+    CTX_EXTENT(CTX_INTERP, patch_interpolations_before);
+
+    CTX_EXTENT(CTX_GAME_LOOP, game_loop_one_iteration);
+
+    CTX_EXTENT(CTX_SMLUA, smlua_update);
+
+    CTX_EXTENT(CTX_AUDIO, buffer_audio);
+
+    CTX_EXTENT(CTX_RENDER, produce_interpolation_frames_and_delay);
 }
 
 void audio_shutdown(void) {
@@ -275,7 +255,7 @@ void audio_shutdown(void) {
 }
 
 void game_deinit(void) {
-    configfile_save(configfile_name());
+    if (gGameInited) configfile_save(configfile_name());
     controller_shutdown();
 #ifdef HAVE_BASS
     audio_custom_shutdown();
@@ -285,7 +265,7 @@ void game_deinit(void) {
     network_shutdown(true, true, false, false);
     smlua_shutdown();
     mods_shutdown();
-    inited = false;
+    gGameInited = false;
 }
 
 void game_exit(void) {
@@ -294,11 +274,7 @@ void game_exit(void) {
     exit(0);
 }
 
-void inthand(UNUSED int signum) {
-    game_exit();
-}
-
-void main_func(void) {
+void* main_game_init(UNUSED void* arg) {
 #ifdef TARGET_ANDROID
     char gamedir[SYS_MAX_PATH] = { 0 };
     const char *basedir = get_gamedir();
@@ -316,19 +292,24 @@ void main_func(void) {
     const char *userpath = gCLIOpts.SavePath[0] ? gCLIOpts.SavePath : sys_user_path();
     fs_init(sys_ropaths, gamedir, userpath);
 
-    sync_objects_init_system();
-    djui_unicode_init();
-    djui_init();
-    dynos_packs_init();
-    mods_init();
+    if (gIsThreaded) { REFRESH_MUTEX(snprintf(gCurrLoadingSegment.str, 256, "Loading")); }
+    dynos_gfx_init();
 
     // load config
     configfile_load();
-    if (!djui_language_init(configLanguage)) {
-        snprintf(configLanguage, MAX_CONFIG_STRING, "%s", "");
-    }
+    configWindow.settings_changed = true;
+    if (!djui_language_init(configLanguage)) { snprintf(configLanguage, MAX_CONFIG_STRING, "%s", ""); }
+    dynos_packs_init();
+    sync_objects_init_system();
 
-    dynos_pack_init();
+    mods_init();
+    enable_queued_mods();
+    if (gIsThreaded) {
+        REFRESH_MUTEX(
+            gCurrLoadingSegment.percentage = 0;
+            snprintf(gCurrLoadingSegment.str, 256, "Starting game");
+        );
+    }
 
     // If coop_custom_palette_* values are not found in sm64config.txt, the custom palette config will use the default values (Mario's palette)
     // But if no preset is found, that means the current palette is a custom palette
@@ -343,94 +324,33 @@ void main_func(void) {
 
     if (configPlayerModel >= CT_MAX) { configPlayerModel = 0; }
 
-    if (gCLIOpts.FullScreen == 1)
-        configWindow.fullscreen = true;
-    else if (gCLIOpts.FullScreen == 2)
-        configWindow.fullscreen = false;
+    if (gCLIOpts.FullScreen == 1) { configWindow.fullscreen = true; }
+    else if (gCLIOpts.FullScreen == 2) { configWindow.fullscreen = false; }
 
-    #if defined(WAPI_SDL1) || defined(WAPI_SDL2)
-    wm_api = &gfx_sdl;
-    #elif defined(WAPI_DXGI)
-    wm_api = &gfx_dxgi;
-    #elif defined(WAPI_DUMMY)
-    wm_api = &gfx_dummy_wm_api;
-    #else
-    #error No window API!
-    #endif
+    if (gCLIOpts.PlayerName[0] != '\0') {
+        snprintf(configPlayerName, MAX_PLAYER_STRING, "%s", gCLIOpts.PlayerName);
+        printf("\nCustom Playername (Start-Parameter): %s\n\n", configPlayerName);
+    }
 
-    #if defined(RAPI_D3D11)
-    rendering_api = &gfx_direct3d11_api;
-    # define RAPI_NAME "DirectX 11"
-    #elif defined(RAPI_D3D12)
-    rendering_api = &gfx_direct3d12_api;
-    # define RAPI_NAME "DirectX 12"
-    #elif defined(RAPI_GL) || defined(RAPI_GL_LEGACY)
-    rendering_api = &gfx_opengl_api;
-    # ifdef USE_GLES
-    #  define RAPI_NAME "OpenGL ES"
-    # else
-    #  define RAPI_NAME "OpenGL"
-    # endif
-    #elif defined(RAPI_DUMMY)
-    rendering_api = &gfx_dummy_renderer_api;
-    #else
-    #error No rendering API!
-    #endif
-
-    char* version = get_version_local();
-    char window_title[96] = { 0 };
-#ifdef GIT_HASH
-    snprintf(window_title, 96, "sm64ex-coop: %s [%s]", version, GIT_HASH);
-#else
-    snprintf(window_title, 96, "sm64ex-coop: %s", version);
+    if (!gGfxInited) {
+        gfx_init(&WAPI, &RAPI, TITLE);
+        WAPI.set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up, keyboard_on_text_input);
+#ifdef TOUCH_CONTROLS
+        WAPI.set_touchscreen_callbacks((void *)touch_down, (void *)touch_motion, (void *)touch_up);
 #endif
-
-    gfx_init(wm_api, rendering_api, window_title);
-    wm_api->set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up, keyboard_on_text_input);
-
-    #ifdef TOUCH_CONTROLS
-    wm_api->set_touchscreen_callbacks((void *)touch_down, (void *)touch_motion, (void *)touch_up);
-    #endif
-
-    #if defined(AAPI_SDL1) || defined(AAPI_SDL2)
-    if (audio_api == NULL && audio_sdl.init())
-        audio_api = &audio_sdl;
-    #endif
-
-    if (audio_api == NULL) {
-        audio_api = &audio_null;
     }
 
-    djui_init_late();
-
-    if (gCLIOpts.Network == NT_CLIENT) {
-        network_set_system(NS_SOCKET);
-        snprintf(gGetHostName, MAX_CONFIG_STRING, "%s", gCLIOpts.JoinIp);
-        snprintf(configJoinIp, MAX_CONFIG_STRING, "%s", gCLIOpts.JoinIp);
-        configJoinPort = gCLIOpts.NetworkPort;
-        network_init(NT_CLIENT, false);
-    } else if (gCLIOpts.Network == NT_SERVER) {
-        network_set_system(NS_SOCKET);
-        configHostPort = gCLIOpts.NetworkPort;
-        network_init(NT_SERVER, false);
-        djui_panel_shutdown();
-        djui_panel_modlist_create(NULL);
-    } else {
-        network_init(NT_NONE, false);
-    }
+#if defined(AAPI_SDL1) || defined(AAPI_SDL2)
+    if (audio_api == NULL && audio_sdl.init()) { audio_api = &audio_sdl; }
+#endif
+    if (audio_api == NULL) { audio_api = &audio_null; }
 
     audio_init();
     sound_init();
-
 #ifdef HAVE_BASS
     bassh_init();
 #endif
-
     network_player_init();
-
-    thread5_game_loop(NULL);
-
-    inited = true;
 
 #ifdef EXTERNAL_DATA
     // precache data if needed
@@ -441,10 +361,84 @@ void main_func(void) {
     }
 #endif
 
+    gGameInited = true;
+}
+
+
+// I don't really understand how calling main() from the SDL Java wrapper
+// worked in Android before and doesn't now, but it has started to not work,
+// possibly because the Android NDK is stripping or mangling main(), 
+// so I've switched it to SDL_main 
+#ifdef TARGET_ANDROID
+int SDL_main(int argc, char *argv[]) {
+#else
+int main(int argc, char *argv[]) {
+#endif
+
+    // Handle terminal arguments
+    if (!parse_cli_opts(argc, argv)) { return 0; }
+
+    // Create the window straight away
+    if (!gGfxInited) {
+        gfx_init(&WAPI, &RAPI, TITLE);
+        WAPI.set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up, keyboard_on_text_input);
+#ifdef TOUCH_CONTROLS
+        WAPI.set_touchscreen_callbacks((void *)touch_down, (void *)touch_motion, (void *)touch_up);
+#endif
+    }
+
+    // Crash in SDL_aaudio.c on Android if pthread_create() is used here
+#ifndef TARGET_ANDROID
+    // Start the thread for setting up the game
+    if (pthread_mutex_init(&gLoadingThreadMutex, NULL) == 0 && pthread_create(&gLoadingThreadId, NULL, main_game_init, (void*) 1) == 0) {
+        gIsThreaded = true;
+        render_loading_screen(); // Render the loading screen while the game is setup
+        gIsThreaded = false;
+    } else {
+#endif
+        main_game_init(NULL); // Failsafe incase threading doesn't work
+#ifndef TARGET_ANDROID
+    }
+    pthread_mutex_destroy(&gLoadingThreadMutex);
+#endif
+
+    // initialize sm64 data and controllers
+    thread5_game_loop(NULL);
+
+    // Initialize djui
+    djui_init();
+    djui_unicode_init();
+    djui_init_late();
+    djui_console_message_dequeue();
+
+    // Init network
+    if (gCLIOpts.Network == NT_CLIENT) {
+        network_set_system(NS_SOCKET);
+        snprintf(gGetHostName, MAX_CONFIG_STRING, "%s", gCLIOpts.JoinIp);
+        snprintf(configJoinIp, MAX_CONFIG_STRING, "%s", gCLIOpts.JoinIp);
+        configJoinPort = gCLIOpts.NetworkPort;
+        network_init(NT_CLIENT, false);
+    } else if (gCLIOpts.Network == NT_SERVER) {
+        network_set_system(NS_SOCKET);
+        configHostPort = gCLIOpts.NetworkPort;
+
+        // Horrible, hacky fix for mods that access marioObj straight away
+        // best fix: host with the standard main menu method
+        static struct Object sHackyObject = { 0 };
+        gMarioStates[0].marioObj = &sHackyObject;
+
+        network_init(NT_SERVER, false);
+        djui_panel_shutdown();
+        djui_panel_modlist_create(NULL);
+    } else {
+        network_init(NT_NONE, false);
+    }
+
+    // Main loop
     while (true) {
         debug_context_reset();
         CTX_BEGIN(CTX_FRAME);
-        wm_api->main_loop(produce_one_frame);
+        WAPI.main_loop(produce_one_frame);
 #ifdef DISCORD_SDK
         discord_update();
 #endif
@@ -458,19 +452,5 @@ void main_func(void) {
 #ifdef HAVE_BASS
     bassh_deinit();
 #endif
-}
-
-// I don't really understand how calling main() from the SDL Java wrapper
-// worked in Android before and doesn't now, but it has started to not work,
-// possibly because the Android NDK is stripping or mangling main(), 
-// so I've switched it to SDL_main 
-#ifdef TARGET_ANDROID
-int SDL_main(int argc, char *argv[]) {
-#else
-int main(int argc, char *argv[]) {
-#endif
-    parse_cli_opts(argc, argv);
-    dynos_init();
-    main_func();
     return 0;
 }

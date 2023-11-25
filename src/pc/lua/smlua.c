@@ -50,7 +50,7 @@ int smlua_pcall(lua_State* L, int nargs, int nresults, UNUSED int errfunc) {
     return rc;
 }
 
-void smlua_exec_file(char* path) {
+void smlua_exec_file(const char* path) {
     lua_State* L = gLuaState;
     if (luaL_dofile(L, path) != LUA_OK) {
         LOG_LUA("Failed to load lua file '%s'.", path);
@@ -59,7 +59,7 @@ void smlua_exec_file(char* path) {
     lua_pop(L, lua_gettop(L));
 }
 
-void smlua_exec_str(char* str) {
+void smlua_exec_str(const char* str) {
     lua_State* L = gLuaState;
     if (luaL_dostring(L, str) != LUA_OK) {
         LOG_LUA("Failed to load lua string.");
@@ -253,7 +253,7 @@ void smlua_init(void) {
     luaL_requiref(L, "debug", luaopen_debug, 1);
     luaL_requiref(L, "io", luaopen_io, 1);
     luaL_requiref(L, "os", luaopen_os, 1);
-    luaL_requiref(L, "package ", luaopen_package, 1);
+    luaL_requiref(L, "package", luaopen_package, 1);
 #endif
     luaL_requiref(L, "math", luaopen_math, 1);
     luaL_requiref(L, "string", luaopen_string, 1);

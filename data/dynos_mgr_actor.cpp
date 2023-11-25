@@ -24,7 +24,6 @@ static Array<Pair<const char*, void *>>& DynosCustomActors() {
 //       clean up the actor management code more
 
 void DynOS_Actor_AddCustom(const SysPath &aFilename, const char *aActorName) {
-
     const void* georef = DynOS_Builtin_Actor_GetFromName(aActorName);
 
     u16 actorLen = strlen(aActorName);

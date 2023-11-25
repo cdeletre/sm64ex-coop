@@ -39,11 +39,9 @@
 #include "obj_behaviors.h"
 #include "hardcoded.h"
 #include "pc/configfile.h"
-#include "pc/cheats.h"
 #include "pc/network/network.h"
 #include "pc/lua/smlua.h"
 #include "pc/network/socket/socket.h"
-#include "pc/logfile.h"
 #ifdef BETTERCAMERA
 #include "bettercamera.h"
 #endif
@@ -117,6 +115,42 @@ s16 set_mario_animation(struct MarioState *m, s32 targetAnimID) {
 }
 
 /**
+ * Sets the character specific animation without any acceleration, running at its default rate.
+ */
+s16 set_character_animation(struct MarioState *m, s32 targetAnimID) {
+    if (!m) { return 0; }
+    struct Object *o = m->marioObj;
+    if (!o || !m->animation) { return 0; }
+    struct Animation *targetAnim = m->animation->targetAnim;
+    s32 charAnimID = get_character_anim(m, targetAnimID);
+    if (!targetAnim) { return 0; }
+    
+    if (load_patchable_table(m->animation, charAnimID)) {
+        targetAnim->values = (void *) VIRTUAL_TO_PHYSICAL((u8 *) targetAnim + (uintptr_t) targetAnim->values);
+        targetAnim->index = (void *) VIRTUAL_TO_PHYSICAL((u8 *) targetAnim + (uintptr_t) targetAnim->index);
+    }
+
+    if (o->header.gfx.animInfo.animID != charAnimID) {
+        o->header.gfx.animInfo.animID = charAnimID;
+        o->header.gfx.animInfo.curAnim = targetAnim;
+        o->header.gfx.animInfo.animAccel = 0;
+        o->header.gfx.animInfo.animYTrans = m->unkB0;
+
+        if (targetAnim->flags & ANIM_FLAG_2) {
+            o->header.gfx.animInfo.animFrame = targetAnim->startFrame;
+        } else {
+            if (targetAnim->flags & ANIM_FLAG_FORWARD) {
+                o->header.gfx.animInfo.animFrame = targetAnim->startFrame + 1;
+            } else {
+                o->header.gfx.animInfo.animFrame = targetAnim->startFrame - 1;
+            }
+        }
+    }
+
+    return o->header.gfx.animInfo.animFrame;
+}
+
+/**
  * Sets Mario's animation where the animation is sped up or
  * slowed down via acceleration.
  */
@@ -134,6 +168,46 @@ s16 set_mario_anim_with_accel(struct MarioState *m, s32 targetAnimID, s32 accel)
 
     if (o->header.gfx.animInfo.animID != targetAnimID) {
         o->header.gfx.animInfo.animID = targetAnimID;
+        o->header.gfx.animInfo.curAnim = targetAnim;
+        o->header.gfx.animInfo.animYTrans = m->unkB0;
+
+        if (targetAnim->flags & ANIM_FLAG_2) {
+            o->header.gfx.animInfo.animFrameAccelAssist = (targetAnim->startFrame << 0x10);
+        } else {
+            if (targetAnim->flags & ANIM_FLAG_FORWARD) {
+                o->header.gfx.animInfo.animFrameAccelAssist = (targetAnim->startFrame << 0x10) + accel;
+            } else {
+                o->header.gfx.animInfo.animFrameAccelAssist = (targetAnim->startFrame << 0x10) - accel;
+            }
+        }
+
+        o->header.gfx.animInfo.animFrame = (o->header.gfx.animInfo.animFrameAccelAssist >> 0x10);
+    }
+
+    o->header.gfx.animInfo.animAccel = accel;
+
+    return o->header.gfx.animInfo.animFrame;
+}
+
+/**
+ * Sets character specific animation where the animation is sped up or
+ * slowed down via acceleration.
+ */
+s16 set_character_anim_with_accel(struct MarioState *m, s32 targetAnimID, s32 accel) {
+    if (!m) { return 0; }
+    struct Object *o = m->marioObj;
+    if (!o || !m->animation) { return 0; }
+    struct Animation *targetAnim = m->animation->targetAnim;
+    if (!targetAnim) { return 0; }
+    s32 charAnimID = get_character_anim(m, targetAnimID);
+
+    if (load_patchable_table(m->animation, charAnimID)) {
+        targetAnim->values = (void *) VIRTUAL_TO_PHYSICAL((u8 *) targetAnim + (uintptr_t) targetAnim->values);
+        targetAnim->index = (void *) VIRTUAL_TO_PHYSICAL((u8 *) targetAnim + (uintptr_t) targetAnim->index);
+    }
+
+    if (o->header.gfx.animInfo.animID != charAnimID) {
+        o->header.gfx.animInfo.animID = charAnimID;
         o->header.gfx.animInfo.curAnim = targetAnim;
         o->header.gfx.animInfo.animYTrans = m->unkB0;
 
@@ -446,8 +520,8 @@ void mario_set_bubbled(struct MarioState* m) {
 
     gLocalBubbleCounter = 20;
 
-    set_mario_action(m, ACT_BUBBLED, 0);
-    if (m->numLives != -1) {
+    drop_and_set_mario_action(m, ACT_BUBBLED, 0);
+    if (m->numLives > -1) {
         m->numLives--;
     }
     m->healCounter = 0;
@@ -461,6 +535,7 @@ void mario_set_bubbled(struct MarioState* m) {
     gCutsceneTimer = 0;
 
     if (m->playerIndex == 0) {
+        if (m->statusForCamera) { m->statusForCamera->action = m->action; }
         soft_reset_camera(m->area->camera);
     }
 }
@@ -1577,6 +1652,7 @@ copyPlayerGoto:;
                 if (m == m2) { continue; }
                 find_floor(m2->pos[0], m2->pos[1], m2->pos[2], &floor2);
                 if (floor2 == NULL) { continue; }
+                LOG_INFO("OOB! teleporting to player with local index %d", i);
                 vec3f_copy(m->pos, m2->pos);
                 copiedPlayer = TRUE;
                 goto copyPlayerGoto;
@@ -1610,23 +1686,6 @@ void update_mario_inputs(struct MarioState *m) {
     update_mario_geometry_inputs(m);
 
     debug_print_speed_action_normal(m);
-
-    if (gServerSettings.enableCheats && gCheats.moonJump && m->playerIndex == 0 && m->controller->buttonDown & L_TRIG) {
-        if (m->action == ACT_FORWARD_GROUND_KB ||
-            m->action == ACT_BACKWARD_GROUND_KB ||
-            m->action == ACT_SOFT_FORWARD_GROUND_KB ||
-            m->action == ACT_HARD_BACKWARD_GROUND_KB ||
-            m->action == ACT_FORWARD_AIR_KB ||
-            m->action == ACT_BACKWARD_AIR_KB ||
-            m->action == ACT_HARD_FORWARD_AIR_KB ||
-            m->action == ACT_HARD_BACKWARD_AIR_KB ||
-            m->action == ACT_AIR_HIT_WALL) {
-            set_mario_action(m, ACT_FREEFALL, 0);
-        }
-
-        m->faceAngle[1] = m->intendedYaw - approach_s32((s16)(m->intendedYaw - m->faceAngle[1]), 0, 0x800, 0x800);
-        m->vel[1] = 40;
-    }
 
     /* Developer stuff */
 #ifdef DEVELOPMENT
@@ -1980,29 +2039,8 @@ static u8 prevent_hang(u32 hangPreventionActions[], u8* hangPreventionIndex) {
     *hangPreventionIndex = *hangPreventionIndex + 1;
     if (*hangPreventionIndex < MAX_HANG_PREVENTION) { return FALSE; }
 
-    // only dump the log once
-    static u8 dumped = FALSE;
-    if (dumped) { return TRUE; }
-    dumped = TRUE;
-
-    // open the log
-    FILE* f = logfile_open(LFT_HANG);
-    if (f == NULL) { return TRUE; }
-
     // complain to console
-    printf("#######################################\n");
-    printf("# HANG PREVENTED                      #\n");
-    printf("# Send the error log to the developer #\n");
-    printf("#######################################\n");
-
-    // save to log
-    fprintf(f, "(gMarioState->action: hang prevention begin)\n");
-    for (s32 i = 0; i < MAX_HANG_PREVENTION; i++) {
-        fprintf(f, "%08X\n", hangPreventionActions[i]);
-    }
-    fprintf(f, "(gMarioState->action: hang prevention end)\n");
-
-    logfile_close(LFT_HANG);
+    LOG_ERROR("Action loop hang prevented");
 
     return TRUE;
 }
@@ -2074,18 +2112,6 @@ s32 execute_mario_action(UNUSED struct Object *o) {
         } else if (np->fadeOpacity < 32) {
             np->fadeOpacity += 2;
             gMarioState->fadeWarpOpacity = np->fadeOpacity << 3;
-        }
-    }
-
-    if (gServerSettings.enableCheats) {
-        if (gCheats.godMode) {
-            gMarioState->health = 0x880;
-            gMarioState->healCounter = 0;
-            gMarioState->hurtCounter = 0;
-        }
-
-        if (gCheats.infiniteLives && gMarioState->numLives < 100) {
-            gMarioState->numLives = 100;
         }
     }
 
@@ -2201,10 +2227,6 @@ s32 execute_mario_action(UNUSED struct Object *o) {
 #endif
         }
 
-        if (gServerSettings.enableCheats && gCheats.bljAnywhere && gMarioState->playerIndex == 0 && gMarioState->action == ACT_LONG_JUMP && gMarioState->forwardVel < -15 && gMarioState->input & INPUT_Z_DOWN && gMarioState->pos[1] - gMarioState->floorHeight < 90) {
-            gMarioState->vel[1] = -30;
-        }
-
         play_infinite_stairs_music();
         gMarioState->marioObj->oInteractStatus = 0;
         queue_particle_rumble();
@@ -2290,6 +2312,14 @@ void init_single_mario(struct MarioState* m) {
 
     update_mario_info_for_cam(m);
     m->marioBodyState->punchState = 0;
+
+    m->marioBodyState->shadeR = 127;
+    m->marioBodyState->shadeG = 127;
+    m->marioBodyState->shadeB = 127;
+
+    m->marioBodyState->lightR = 255;
+    m->marioBodyState->lightG = 255;
+    m->marioBodyState->lightB = 255;
 
     m->marioObj->oPosX = m->pos[0];
     m->marioObj->oPosY = m->pos[1];

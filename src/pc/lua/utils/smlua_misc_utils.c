@@ -16,6 +16,7 @@
 #include "game/object_list_processor.h"
 #include "game/rendering_graph_node.h"
 #include "game/level_update.h"
+#include "pc/djui/djui_console.h"
 #include "pc/djui/djui_hud_utils.h"
 #include "game/skybox.h"
 #include "pc/gfx/gfx_pc.h"
@@ -49,6 +50,30 @@ void djui_popup_create_global(const char* message, int lines) {
     network_send_global_popup(message, lines);
 }
 
+struct AllowDjuiPopupOverride {
+    bool value;
+    bool override;
+};
+
+struct AllowDjuiPopupOverride sAllowDjuiPopupOverride;
+
+bool djui_is_popup_disabled(void) {
+    // return override if there is one, otherwise return the value in the config.
+    return sAllowDjuiPopupOverride.override ? sAllowDjuiPopupOverride.value : configDisablePopups;
+}
+
+void djui_set_popup_disabled_override(bool value) {
+    // enable override
+    sAllowDjuiPopupOverride.override = true;
+    // set override to value specified in lua mod
+    sAllowDjuiPopupOverride.value = value;
+}
+
+void djui_reset_popup_disabled_override(void) {
+    // disable override
+    sAllowDjuiPopupOverride.override = false;
+}
+
 ///
 
 void hud_hide(void) {
@@ -61,6 +86,12 @@ void hud_show(void) {
 
 bool hud_is_hidden(void) {
     return gOverrideHideHud;
+}
+
+///
+
+void log_to_console(const char* message) {
+    djui_console_message_create((char*)message);
 }
 
 ///
@@ -168,10 +199,10 @@ void hud_render_power_meter(s32 health, f32 x, f32 y, f32 width, f32 height) {
         { (u8*)texture_power_meter_full,           8, 32, 32 },
     };
     djui_hud_render_texture(&sPowerMeterTexturesInfo[0], x, y, width / 64, height / 64);
-    djui_hud_render_texture(&sPowerMeterTexturesInfo[1], x + width / 2, y, width / 64, height / 64);
+    djui_hud_render_texture(&sPowerMeterTexturesInfo[1], x + (width - 2) / 2, y, width / 64, height / 64);
     s32 numWedges = MIN(MAX(health >> 8, 0), 8);
     if (numWedges != 0) {
-        djui_hud_render_texture(&sPowerMeterTexturesInfo[numWedges + 1], x + width / 4, y + height / 4, width / 64,  height / 64);
+        djui_hud_render_texture(&sPowerMeterTexturesInfo[numWedges + 1], x + (width - 4) / 4, y + height / 4, width / 64,  height / 64);
     }
 }
 void hud_render_power_meter_interpolated(s32 health, f32 prevX, f32 prevY, f32 prevWidth, f32 prevHeight, f32 x, f32 y, f32 width, f32 height) {
@@ -203,14 +234,14 @@ void hud_render_power_meter_interpolated(s32 health, f32 prevX, f32 prevY, f32 p
         x,     y,     width     / 64, height     / 64);
 
     djui_hud_render_texture_interpolated(&sPowerMeterTexturesInfo[1],
-        prevX + prevWidth / 2, prevY, prevWidth / 64, prevHeight / 64,
-        x     + width     / 2, y,     width     / 64, height     / 64);
+        prevX + (prevWidth - 2) / 2, prevY, prevWidth / 64, prevHeight / 64,
+        x     + (width - 2)     / 2, y,     width     / 64, height     / 64);
 
     s32 numWedges = MIN(MAX(health >> 8, 0), 8);
     if (numWedges != 0) {
         djui_hud_render_texture_interpolated(&sPowerMeterTexturesInfo[numWedges + 1],
-            prevX + prevWidth / 4, prevY + prevHeight / 4, prevWidth / 64, prevHeight / 64,
-            x     + width     / 4, y     + height     / 4, width     / 64, height     / 64);
+            prevX + (prevWidth - 4) / 4, prevY + prevHeight / 4, prevWidth / 64, prevHeight / 64,
+            x     + (width - 4)     / 4, y     + height     / 4, width     / 64, height     / 64);
     }
 }
 
@@ -263,6 +294,14 @@ void camera_set_romhack_override(enum RomhackCameraOverride rco) {
 
 void camera_romhack_allow_centering(u8 allow) {
     gRomhackCameraAllowCentering = allow;
+}
+
+void camera_allow_toxic_gas_camera(u8 allow) {
+    gOverrideAllowToxicGasCamera = allow;
+}
+
+void camera_romhack_allow_dpad_usage(u8 allow) {
+    gRomhackCameraAllowDpad = allow;
 }
 
 bool camera_config_is_free_cam_enabled(void) {
@@ -441,8 +480,13 @@ bool is_transition_playing(void) {
 ///
 
 u32 allocate_mario_action(u32 actFlags) {
-    actFlags = actFlags & (~((u32)0x3F));
-    return actFlags | ACT_FLAG_CUSTOM_ACTION | gLuaMarioActionIndex++;
+    u32 actGroup = ((actFlags & ACT_GROUP_MASK) >> 6);
+    u32 actIndex = gLuaMarioActionIndex[actGroup]++;
+    if (actIndex >= ACT_NUM_ACTIONS_PER_GROUP) {
+        LOG_LUA("Cannot allocate more actions for group %u", actGroup);
+        return 0;
+    }
+    return (actFlags & ~ACT_INDEX_MASK) | ACT_FLAG_CUSTOM_ACTION | actIndex;
 }
 
 ///
@@ -594,7 +638,7 @@ void set_override_envfx(s32 envfx) {
 
 ///
 
-char* get_os_name(void) {
+const char* get_os_name(void) {
 #if defined(_WIN32) || defined(_WIN64)
     return "Windows";
 #elif __APPLE__ || __MACH__

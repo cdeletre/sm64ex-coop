@@ -3,10 +3,6 @@ extern "C" {
 #include "src/game/moving_texture.h"
 #include "game/hardcoded.h"
 
-void dynos_init(void) {
-    return DynOS_Init();
-}
-
 void *dynos_swap_cmd(void *cmd) {
     return DynOS_SwapCmd(cmd);
 }
@@ -18,12 +14,7 @@ void *dynos_update_cmd(void *cmd) {
 }
 
 void dynos_update_gfx() {
-    DynOS_Model_Update();
     return DynOS_UpdateGfx();
-}
-
-void dynos_update_opt(void *pad) {
-    return DynOS_UpdateOpt(pad);
 }
 
 s32 dynos_tex_import(void **output, void *ptr, s32 tile, void *grapi, void **hashmap, void *pool, s32 *poolpos, s32 poolsize) {
@@ -36,7 +27,7 @@ void dynos_gfx_swap_animations(void *ptr) {
 
 // -- warps -- //
 
-LevelScript* dynos_get_level_script(char* scriptEntryName) {
+LevelScript* dynos_get_level_script(const char* scriptEntryName) {
     return DynOS_Lvl_GetScript(scriptEntryName);
 }
 
@@ -72,8 +63,11 @@ bool dynos_warp_to_castle(s32 aLevel) {
 
 // -- dynos packs -- //
 
-void dynos_packs_init(void) {
+void dynos_gfx_init(void) {
     DynOS_Gfx_Init();
+}
+
+void dynos_packs_init(void) {
     DynOS_Pack_Init();
 }
 
@@ -189,8 +183,8 @@ u64 dynos_level_cmd_get(void *cmd, u64 offset) {
     return DynOS_Level_CmdGet(cmd, offset);
 }
 
-void dynos_level_cmd_next(void *cmd, u64 cmdsize) {
-    DynOS_Level_CmdNext(cmd, cmdsize);
+void dynos_level_cmd_next(void *cmd) {
+    DynOS_Level_CmdNext((LvlCmd*) cmd);
 }
 
 void dynos_level_parse_script(const void *script, s32 (*aPreprocessFunction)(u8, void *)) {

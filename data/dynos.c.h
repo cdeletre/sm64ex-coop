@@ -13,12 +13,11 @@ void *dynos_swap_cmd(void *cmd);
 // -- built in -- //
 void *dynos_update_cmd(void *cmd);
 void  dynos_update_gfx();
-void  dynos_update_opt(void *pad);
 s32   dynos_tex_import(void **output, void *ptr, s32 tile, void *grapi, void **hashmap, void *pool, s32 *poolpos, s32 poolsize);
 void  dynos_gfx_swap_animations(void *ptr);
 
 // -- warps -- //
-LevelScript* dynos_get_level_script(char* scriptEntryName);
+LevelScript* dynos_get_level_script(const char* scriptEntryName);
 bool dynos_warp_to_warpnode(s32 aLevel, s32 aArea, s32 aAct, s32 aWarpId);
 bool dynos_warp_to_level(s32 aLevel, s32 aArea, s32 aAct);
 bool dynos_warp_restart_level(void);
@@ -27,6 +26,7 @@ bool dynos_warp_exit_level(s32 aDelay);
 bool dynos_warp_to_castle(s32 aLevel);
 
 // -- dynos packs -- //
+void dynos_gfx_init(void);
 void dynos_packs_init(void);
 int dynos_pack_get_count(void);
 const char* dynos_pack_get_name(s32 index);
@@ -39,7 +39,6 @@ void dynos_generate_packs(const char* directory);
 void dynos_actor_override(void** aSharedChild);
 void dynos_add_actor_custom(const char *filePath, const char* geoName);
 const void* dynos_geolayout_get(const char *name);
-void *dynos_geolayout_to_graphnode(const void *geoLayout, bool keepInMemory);
 
 // -- collisions -- //
 void dynos_add_collision(const char *filePath, const char* collisionName);
@@ -60,7 +59,7 @@ const char* dynos_level_get_token(u32 index);
 Trajectory* dynos_level_get_trajectory(const char* name);
 void dynos_level_load_background(void *ptr);
 u64 dynos_level_cmd_get(void *cmd, u64 offset);
-void dynos_level_cmd_next(void *cmd, u64 cmdsize);
+void dynos_level_cmd_next(void *cmd);
 void dynos_level_parse_script(const void *script, s32 (*aPreprocessFunction)(u8, void *));
 void* dynos_level_get_script(s32 level);
 s32 dynos_level_get_mod_index(s32 level);

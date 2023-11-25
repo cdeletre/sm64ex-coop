@@ -67,7 +67,7 @@ static void strncat_len(char* destination, char* source, size_t destinationLengt
 
 static void discord_populate_details(char* buffer, int bufferLength) {
     // get version
-    char* version = get_version();
+    const char* version = get_version();
     int versionLength = strlen(version);
     snprintf(buffer, bufferLength, "%s", version);
     buffer += versionLength;
@@ -136,18 +136,18 @@ void discord_activity_update(void) {
 }
 
 void discord_activity_update_check(void) {
+#ifdef COOPNET
     if (sQueuedLobby > 0) {
         if (--sQueuedLobby == 0) {
-#ifdef COOPNET
             gCoopNetDesiredLobby = sQueuedLobbyId;
             snprintf(gCoopNetPassword, 64, "%s", sQueuedLobbyPassword);
             network_reset_reconnect_and_rehost();
             network_set_system(NS_COOPNET);
             network_init(NT_CLIENT, false);
             djui_panel_join_message_create(NULL);
-#endif
         }
     }
+#endif
 
     if (gNetworkType == NT_NONE) { return; }
     bool shouldUpdate = false;

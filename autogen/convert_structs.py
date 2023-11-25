@@ -79,8 +79,12 @@ override_field_mutable = {
 override_field_invisible = {
     "Mod": [ "files" ],
     "MarioState": [ "visibleToEnemies" ],
-    "NetworkPlayer": [ "gag"],
+    "NetworkPlayer": [ "gag", "moderator"],
     "GraphNode": [ "_guard1", "_guard2" ],
+}
+
+override_field_deprecated = {
+    "ServerSettings": [ "enableCheats" ],
 }
 
 override_field_immutable = {
@@ -136,11 +140,48 @@ total_fields = 0
 
 ############################################################################
 
+def promote_block(before_block, after_block):
+    inside = 1
+    idx = -1
+
+    for character in after_block:
+        idx += 1
+        if character == '{':
+            inside += 1
+        elif character == '}':
+            inside -= 1
+            if inside <= 0:
+                break
+    if inside == 0 and idx > -1 and after_block[idx+1] == ';':
+        return before_block + after_block[:idx] + after_block[idx+2:]
+
+    return None
+
+def strip_anonymous_blocks(body):
+    while 'union {' in body:
+        before_union = body.split('union {', 1)[0]
+        after_union = body.split('union {', 1)[-1]
+        promoted = promote_block(before_union, after_union)
+        if promoted == None:
+            break
+        body = promoted
+
+    while 'struct {' in body:
+        before_union = body.split('struct {', 1)[0]
+        after_union = body.split('struct {', 1)[-1]
+        promoted = promote_block(before_union, after_union)
+        if promoted == None:
+            break
+        body = promoted
+
+    return body
+
 def strip_internal_blocks(body):
     # strip internal structs/enums/etc
     tmp = body
     body = ''
     inside = 0
+    stripped = ''
     for character in tmp:
         if character == '{':
             body += '{ ... }'
@@ -148,6 +189,8 @@ def strip_internal_blocks(body):
 
         if inside == 0:
             body += character
+        else:
+            stripped += character
 
         if character == '}':
             inside -= 1
@@ -202,6 +245,7 @@ def parse_struct(struct_str):
     struct['identifier'] = identifier
 
     body = struct_str.split('{', 1)[1].rsplit('}', 1)[0]
+    body = strip_anonymous_blocks(body)
     body = strip_internal_blocks(body)
 
     struct['fields'] = []
@@ -480,6 +524,10 @@ def doc_struct_field(struct, field):
     sid = struct['identifier']
     if sid in override_field_invisible:
         if fid in override_field_invisible[sid]:
+            return ''
+
+    if sid in override_field_deprecated:
+        if fid in override_field_deprecated[sid]:
             return ''
 
     if '???' in lvt or '???' in lot:

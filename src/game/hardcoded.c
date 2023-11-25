@@ -34,6 +34,8 @@
 #include "levels/wf/header.h"
 #include "levels/wmotr/header.h"
 
+#include "src/pc/pc_main.h"
+
 extern Trajectory sThiHugeMetalBallTraj[];
 extern Trajectory sThiTinyMetalBallTraj[];
 
@@ -115,6 +117,11 @@ struct LevelValues gDefaultLevelValues = {
     .pauseExitAnywhere              = 1,
     .disableActs                    = false,
     .wingCapLookUpReq               = 10,
+    .maxLives                       = 100,
+    .maxCoins                       = 999,
+    .numCoinsToLife                 = 50,
+    .bubbleOnDeathBarrierInCapStages = false,
+    .wdwWaterLevelSpeed             = 10.0f,
 };
 
 struct LevelValues gLevelValues = { 0 };
@@ -146,6 +153,7 @@ struct BehaviorValues gDefaultBehaviorValues = {
     .BowlingBallThiLargeSpeed = 25.0f,
     .BowlingBallThiSmallSpeed = 10.0f,
     .GrateStarRequirement     = 120,
+    .ChillBullyDeathPosY      = 1030.0f,
     .ShowStarMilestones       = TRUE,
     .RespawnShellBoxes        = TRUE,
     .MultipleCapCollection    = FALSE,
@@ -302,8 +310,7 @@ struct PaintingValues gPaintingValues = { 0 };
  // functions //
 ///////////////
 
-__attribute__((constructor))
-void hardcoded_reset_default_values(void) {
+AT_STARTUP void hardcoded_reset_default_values(void) {
     gLevelValues = gDefaultLevelValues;
     gBehaviorValues = gDefaultBehaviorValues;
 

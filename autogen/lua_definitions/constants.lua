@@ -2,6 +2,8 @@
 
 math.randomseed(get_time())
 
+_CObjectPool = {}
+
 _CObject = {
     __index = function (t,k)
         return _get_field(t['_lot'], t['_pointer'], k, t)
@@ -9,10 +11,32 @@ _CObject = {
     __newindex = function (t,k,v)
         _set_field(t['_lot'], t['_pointer'], k, v, t)
     end,
+    __tostring = function(t)
+        return 'CObject: ' .. t['_lot'] .. ', [' .. string.format('0x%08X', t['_pointer']) .. ']'
+    end,
     __eq = function (a, b)
         return a['_pointer'] == b['_pointer'] and a['_lot'] == b['_lot'] and a['_pointer'] ~= nil and a['_lot'] ~= nil
     end
 }
+
+function _NewCObject(lot, pointer)
+    if _CObjectPool[lot] == nil then
+        _CObjectPool[lot] = {}
+    end
+
+    if _CObjectPool[lot][pointer] == nil then
+        local obj = {}
+        rawset(obj, '_pointer', pointer)
+        rawset(obj, '_lot', lot)
+        setmetatable(obj, _CObject)
+        _CObjectPool[lot][pointer] = obj
+        return obj
+    end
+
+    return _CObjectPool[lot][pointer]
+end
+
+local _CPointerPool = {}
 
 _CPointer = {
     __index = function (t,k)
@@ -27,6 +51,23 @@ _CPointer = {
         return a['_pointer'] == b['_pointer'] and a['_pointer'] ~= nil and a['_lvt'] ~= nil
     end
 }
+
+function _NewCPointer(lvt, pointer)
+    if _CPointerPool[lvt] == nil then
+        _CPointerPool[lvt] = {}
+    end
+
+    if _CPointerPool[lvt][pointer] == nil then
+        local obj = {}
+        rawset(obj, '_pointer', pointer)
+        rawset(obj, '_lvt', lvt)
+        setmetatable(obj, _CPointer)
+        _CPointerPool[lvt][pointer] = obj
+        return obj
+    end
+
+    return _CPointerPool[lvt][pointer]
+end
 
 _SyncTable = {
     __index = function (t,k)
@@ -345,7 +386,7 @@ INSTANT_WARP_INDEX_START = 0x00
 INSTANT_WARP_INDEX_STOP = 0x04
 
 --- @type integer
-MAX_AREAS = 8
+MAX_AREAS = 16
 
 --- @type integer
 WARP_TRANSITION_FADE_FROM_BOWSER = 0x12
@@ -3913,6 +3954,21 @@ MARIO_SPAWN_UNKNOWN_27 = 0x27
 PRESS_START_DEMO_TIMER = 800
 
 --- @type integer
+SPECIAL_WARP_CAKE = -1
+
+--- @type integer
+SPECIAL_WARP_GODDARD = -2
+
+--- @type integer
+SPECIAL_WARP_GODDARD_GAMEOVER = -3
+
+--- @type integer
+SPECIAL_WARP_LEVEL_SELECT = -9
+
+--- @type integer
+SPECIAL_WARP_TITLE = -8
+
+--- @type integer
 TIMER_CONTROL_HIDE = 3
 
 --- @type integer
@@ -3923,6 +3979,30 @@ TIMER_CONTROL_START = 1
 
 --- @type integer
 TIMER_CONTROL_STOP = 2
+
+--- @type integer
+WARP_NODE_CREDITS_END = 0xFA
+
+--- @type integer
+WARP_NODE_CREDITS_MIN = 0xF8
+
+--- @type integer
+WARP_NODE_CREDITS_NEXT = 0xF9
+
+--- @type integer
+WARP_NODE_CREDITS_START = 0xF8
+
+--- @type integer
+WARP_NODE_DEATH = 0xF1
+
+--- @type integer
+WARP_NODE_F0 = 0xF0
+
+--- @type integer
+WARP_NODE_F2 = 0xF2
+
+--- @type integer
+WARP_NODE_WARP_FLOOR = 0xF3
 
 --- @type integer
 WARP_OP_CREDITS_END = 0x15
@@ -4027,6 +4107,638 @@ HUD_DISPLAY_NONE = 0x0000
 
 --- @type HUDDisplayFlag
 HUD_DISPLAY_DEFAULT = HUD_DISPLAY_FLAG_LIVES | HUD_DISPLAY_FLAG_COIN_COUNT | HUD_DISPLAY_FLAG_STAR_COUNT | HUD_DISPLAY_FLAG_CAMERA_AND_POWER | HUD_DISPLAY_FLAG_CAMERA | HUD_DISPLAY_FLAG_POWER | HUD_DISPLAY_FLAG_KEYS | HUD_DISPLAY_FLAG_UNKNOWN_0020
+
+--- @class CharacterAnimID
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLOW_LEDGE_GRAB = 0
+
+--- @type CharacterAnimID
+CHAR_ANIM_FALL_OVER_BACKWARDS = 1
+
+--- @type CharacterAnimID
+CHAR_ANIM_BACKWARD_AIR_KB = 2
+
+--- @type CharacterAnimID
+CHAR_ANIM_DYING_ON_BACK = 3
+
+--- @type CharacterAnimID
+CHAR_ANIM_BACKFLIP = 4
+
+--- @type CharacterAnimID
+CHAR_ANIM_CLIMB_UP_POLE = 5
+
+--- @type CharacterAnimID
+CHAR_ANIM_GRAB_POLE_SHORT = 6
+
+--- @type CharacterAnimID
+CHAR_ANIM_GRAB_POLE_SWING_PART1 = 7
+
+--- @type CharacterAnimID
+CHAR_ANIM_GRAB_POLE_SWING_PART2 = 8
+
+--- @type CharacterAnimID
+CHAR_ANIM_HANDSTAND_IDLE = 9
+
+--- @type CharacterAnimID
+CHAR_ANIM_HANDSTAND_JUMP = 10
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_HANDSTAND = 11
+
+--- @type CharacterAnimID
+CHAR_ANIM_RETURN_FROM_HANDSTAND = 12
+
+--- @type CharacterAnimID
+CHAR_ANIM_IDLE_ON_POLE = 13
+
+--- @type CharacterAnimID
+CHAR_ANIM_A_POSE = 14
+
+--- @type CharacterAnimID
+CHAR_ANIM_SKID_ON_GROUND = 15
+
+--- @type CharacterAnimID
+CHAR_ANIM_STOP_SKID = 16
+
+--- @type CharacterAnimID
+CHAR_ANIM_CROUCH_FROM_FAST_LONGJUMP = 17
+
+--- @type CharacterAnimID
+CHAR_ANIM_CROUCH_FROM_SLOW_LONGJUMP = 18
+
+--- @type CharacterAnimID
+CHAR_ANIM_FAST_LONGJUMP = 19
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLOW_LONGJUMP = 20
+
+--- @type CharacterAnimID
+CHAR_ANIM_AIRBORNE_ON_STOMACH = 21
+
+--- @type CharacterAnimID
+CHAR_ANIM_WALK_WITH_LIGHT_OBJ = 22
+
+--- @type CharacterAnimID
+CHAR_ANIM_RUN_WITH_LIGHT_OBJ = 23
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLOW_WALK_WITH_LIGHT_OBJ = 24
+
+--- @type CharacterAnimID
+CHAR_ANIM_SHIVERING_WARMING_HAND = 25
+
+--- @type CharacterAnimID
+CHAR_ANIM_SHIVERING_RETURN_TO_IDLE = 26
+
+--- @type CharacterAnimID
+CHAR_ANIM_SHIVERING = 27
+
+--- @type CharacterAnimID
+CHAR_ANIM_CLIMB_DOWN_LEDGE = 28
+
+--- @type CharacterAnimID
+CHAR_ANIM_CREDITS_WAVING = 29
+
+--- @type CharacterAnimID
+CHAR_ANIM_CREDITS_LOOK_UP = 30
+
+--- @type CharacterAnimID
+CHAR_ANIM_CREDITS_RETURN_FROM_LOOK_UP = 31
+
+--- @type CharacterAnimID
+CHAR_ANIM_CREDITS_RAISE_HAND = 32
+
+--- @type CharacterAnimID
+CHAR_ANIM_CREDITS_LOWER_HAND = 33
+
+--- @type CharacterAnimID
+CHAR_ANIM_CREDITS_TAKE_OFF_CAP = 34
+
+--- @type CharacterAnimID
+CHAR_ANIM_CREDITS_START_WALK_LOOK_UP = 35
+
+--- @type CharacterAnimID
+CHAR_ANIM_CREDITS_LOOK_BACK_THEN_RUN = 36
+
+--- @type CharacterAnimID
+CHAR_ANIM_FINAL_BOWSER_RAISE_HAND_SPIN = 37
+
+--- @type CharacterAnimID
+CHAR_ANIM_FINAL_BOWSER_WING_CAP_TAKE_OFF = 38
+
+--- @type CharacterAnimID
+CHAR_ANIM_CREDITS_PEACE_SIGN = 39
+
+--- @type CharacterAnimID
+CHAR_ANIM_STAND_UP_FROM_LAVA_BOOST = 40
+
+--- @type CharacterAnimID
+CHAR_ANIM_FIRE_LAVA_BURN = 41
+
+--- @type CharacterAnimID
+CHAR_ANIM_WING_CAP_FLY = 42
+
+--- @type CharacterAnimID
+CHAR_ANIM_HANG_ON_OWL = 43
+
+--- @type CharacterAnimID
+CHAR_ANIM_LAND_ON_STOMACH = 44
+
+--- @type CharacterAnimID
+CHAR_ANIM_AIR_FORWARD_KB = 45
+
+--- @type CharacterAnimID
+CHAR_ANIM_DYING_ON_STOMACH = 46
+
+--- @type CharacterAnimID
+CHAR_ANIM_SUFFOCATING = 47
+
+--- @type CharacterAnimID
+CHAR_ANIM_COUGHING = 48
+
+--- @type CharacterAnimID
+CHAR_ANIM_THROW_CATCH_KEY = 49
+
+--- @type CharacterAnimID
+CHAR_ANIM_DYING_FALL_OVER = 50
+
+--- @type CharacterAnimID
+CHAR_ANIM_IDLE_ON_LEDGE = 51
+
+--- @type CharacterAnimID
+CHAR_ANIM_FAST_LEDGE_GRAB = 52
+
+--- @type CharacterAnimID
+CHAR_ANIM_HANG_ON_CEILING = 53
+
+--- @type CharacterAnimID
+CHAR_ANIM_PUT_CAP_ON = 54
+
+--- @type CharacterAnimID
+CHAR_ANIM_TAKE_CAP_OFF_THEN_ON = 55
+
+--- @type CharacterAnimID
+CHAR_ANIM_QUICKLY_PUT_CAP_ON = 56
+
+--- @type CharacterAnimID
+CHAR_ANIM_HEAD_STUCK_IN_GROUND = 57
+
+--- @type CharacterAnimID
+CHAR_ANIM_GROUND_POUND_LANDING = 58
+
+--- @type CharacterAnimID
+CHAR_ANIM_TRIPLE_JUMP_GROUND_POUND = 59
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_GROUND_POUND = 60
+
+--- @type CharacterAnimID
+CHAR_ANIM_GROUND_POUND = 61
+
+--- @type CharacterAnimID
+CHAR_ANIM_BOTTOM_STUCK_IN_GROUND = 62
+
+--- @type CharacterAnimID
+CHAR_ANIM_IDLE_WITH_LIGHT_OBJ = 63
+
+--- @type CharacterAnimID
+CHAR_ANIM_JUMP_LAND_WITH_LIGHT_OBJ = 64
+
+--- @type CharacterAnimID
+CHAR_ANIM_JUMP_WITH_LIGHT_OBJ = 65
+
+--- @type CharacterAnimID
+CHAR_ANIM_FALL_LAND_WITH_LIGHT_OBJ = 66
+
+--- @type CharacterAnimID
+CHAR_ANIM_FALL_WITH_LIGHT_OBJ = 67
+
+--- @type CharacterAnimID
+CHAR_ANIM_FALL_FROM_SLIDING_WITH_LIGHT_OBJ = 68
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLIDING_ON_BOTTOM_WITH_LIGHT_OBJ = 69
+
+--- @type CharacterAnimID
+CHAR_ANIM_STAND_UP_FROM_SLIDING_WITH_LIGHT_OBJ = 70
+
+--- @type CharacterAnimID
+CHAR_ANIM_RIDING_SHELL = 71
+
+--- @type CharacterAnimID
+CHAR_ANIM_WALKING = 72
+
+--- @type CharacterAnimID
+CHAR_ANIM_FORWARD_FLIP = 73
+
+--- @type CharacterAnimID
+CHAR_ANIM_JUMP_RIDING_SHELL = 74
+
+--- @type CharacterAnimID
+CHAR_ANIM_LAND_FROM_DOUBLE_JUMP = 75
+
+--- @type CharacterAnimID
+CHAR_ANIM_DOUBLE_JUMP_FALL = 76
+
+--- @type CharacterAnimID
+CHAR_ANIM_SINGLE_JUMP = 77
+
+--- @type CharacterAnimID
+CHAR_ANIM_LAND_FROM_SINGLE_JUMP = 78
+
+--- @type CharacterAnimID
+CHAR_ANIM_AIR_KICK = 79
+
+--- @type CharacterAnimID
+CHAR_ANIM_DOUBLE_JUMP_RISE = 80
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_FORWARD_SPINNING = 81
+
+--- @type CharacterAnimID
+CHAR_ANIM_THROW_LIGHT_OBJECT = 82
+
+--- @type CharacterAnimID
+CHAR_ANIM_FALL_FROM_SLIDE_KICK = 83
+
+--- @type CharacterAnimID
+CHAR_ANIM_BEND_KNESS_RIDING_SHELL = 84
+
+--- @type CharacterAnimID
+CHAR_ANIM_LEGS_STUCK_IN_GROUND = 85
+
+--- @type CharacterAnimID
+CHAR_ANIM_GENERAL_FALL = 86
+
+--- @type CharacterAnimID
+CHAR_ANIM_GENERAL_LAND = 87
+
+--- @type CharacterAnimID
+CHAR_ANIM_BEING_GRABBED = 88
+
+--- @type CharacterAnimID
+CHAR_ANIM_GRAB_HEAVY_OBJECT = 89
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLOW_LAND_FROM_DIVE = 90
+
+--- @type CharacterAnimID
+CHAR_ANIM_FLY_FROM_CANNON = 91
+
+--- @type CharacterAnimID
+CHAR_ANIM_MOVE_ON_WIRE_NET_RIGHT = 92
+
+--- @type CharacterAnimID
+CHAR_ANIM_MOVE_ON_WIRE_NET_LEFT = 93
+
+--- @type CharacterAnimID
+CHAR_ANIM_MISSING_CAP = 94
+
+--- @type CharacterAnimID
+CHAR_ANIM_PULL_DOOR_WALK_IN = 95
+
+--- @type CharacterAnimID
+CHAR_ANIM_PUSH_DOOR_WALK_IN = 96
+
+--- @type CharacterAnimID
+CHAR_ANIM_UNLOCK_DOOR = 97
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_REACH_POCKET = 98
+
+--- @type CharacterAnimID
+CHAR_ANIM_REACH_POCKET = 99
+
+--- @type CharacterAnimID
+CHAR_ANIM_STOP_REACH_POCKET = 100
+
+--- @type CharacterAnimID
+CHAR_ANIM_GROUND_THROW = 101
+
+--- @type CharacterAnimID
+CHAR_ANIM_GROUND_KICK = 102
+
+--- @type CharacterAnimID
+CHAR_ANIM_FIRST_PUNCH = 103
+
+--- @type CharacterAnimID
+CHAR_ANIM_SECOND_PUNCH = 104
+
+--- @type CharacterAnimID
+CHAR_ANIM_FIRST_PUNCH_FAST = 105
+
+--- @type CharacterAnimID
+CHAR_ANIM_SECOND_PUNCH_FAST = 106
+
+--- @type CharacterAnimID
+CHAR_ANIM_PICK_UP_LIGHT_OBJ = 107
+
+--- @type CharacterAnimID
+CHAR_ANIM_PUSHING = 108
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_RIDING_SHELL = 109
+
+--- @type CharacterAnimID
+CHAR_ANIM_PLACE_LIGHT_OBJ = 110
+
+--- @type CharacterAnimID
+CHAR_ANIM_FORWARD_SPINNING = 111
+
+--- @type CharacterAnimID
+CHAR_ANIM_BACKWARD_SPINNING = 112
+
+--- @type CharacterAnimID
+CHAR_ANIM_BREAKDANCE = 113
+
+--- @type CharacterAnimID
+CHAR_ANIM_RUNNING = 114
+
+--- @type CharacterAnimID
+CHAR_ANIM_RUNNING_UNUSED = 115
+
+--- @type CharacterAnimID
+CHAR_ANIM_SOFT_BACK_KB = 116
+
+--- @type CharacterAnimID
+CHAR_ANIM_SOFT_FRONT_KB = 117
+
+--- @type CharacterAnimID
+CHAR_ANIM_DYING_IN_QUICKSAND = 118
+
+--- @type CharacterAnimID
+CHAR_ANIM_IDLE_IN_QUICKSAND = 119
+
+--- @type CharacterAnimID
+CHAR_ANIM_MOVE_IN_QUICKSAND = 120
+
+--- @type CharacterAnimID
+CHAR_ANIM_ELECTROCUTION = 121
+
+--- @type CharacterAnimID
+CHAR_ANIM_SHOCKED = 122
+
+--- @type CharacterAnimID
+CHAR_ANIM_BACKWARD_KB = 123
+
+--- @type CharacterAnimID
+CHAR_ANIM_FORWARD_KB = 124
+
+--- @type CharacterAnimID
+CHAR_ANIM_IDLE_HEAVY_OBJ = 125
+
+--- @type CharacterAnimID
+CHAR_ANIM_STAND_AGAINST_WALL = 126
+
+--- @type CharacterAnimID
+CHAR_ANIM_SIDESTEP_LEFT = 127
+
+--- @type CharacterAnimID
+CHAR_ANIM_SIDESTEP_RIGHT = 128
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_SLEEP_IDLE = 129
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_SLEEP_SCRATCH = 130
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_SLEEP_YAWN = 131
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_SLEEP_SITTING = 132
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLEEP_IDLE = 133
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLEEP_START_LYING = 134
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLEEP_LYING = 135
+
+--- @type CharacterAnimID
+CHAR_ANIM_DIVE = 136
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLIDE_DIVE = 137
+
+--- @type CharacterAnimID
+CHAR_ANIM_GROUND_BONK = 138
+
+--- @type CharacterAnimID
+CHAR_ANIM_STOP_SLIDE_LIGHT_OBJ = 139
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLIDE_KICK = 140
+
+--- @type CharacterAnimID
+CHAR_ANIM_CROUCH_FROM_SLIDE_KICK = 141
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLIDE_MOTIONLESS = 142
+
+--- @type CharacterAnimID
+CHAR_ANIM_STOP_SLIDE = 143
+
+--- @type CharacterAnimID
+CHAR_ANIM_FALL_FROM_SLIDE = 144
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLIDE = 145
+
+--- @type CharacterAnimID
+CHAR_ANIM_TIPTOE = 146
+
+--- @type CharacterAnimID
+CHAR_ANIM_TWIRL_LAND = 147
+
+--- @type CharacterAnimID
+CHAR_ANIM_TWIRL = 148
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_TWIRL = 149
+
+--- @type CharacterAnimID
+CHAR_ANIM_STOP_CROUCHING = 150
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_CROUCHING = 151
+
+--- @type CharacterAnimID
+CHAR_ANIM_CROUCHING = 152
+
+--- @type CharacterAnimID
+CHAR_ANIM_CRAWLING = 153
+
+--- @type CharacterAnimID
+CHAR_ANIM_STOP_CRAWLING = 154
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_CRAWLING = 155
+
+--- @type CharacterAnimID
+CHAR_ANIM_SUMMON_STAR = 156
+
+--- @type CharacterAnimID
+CHAR_ANIM_RETURN_STAR_APPROACH_DOOR = 157
+
+--- @type CharacterAnimID
+CHAR_ANIM_BACKWARDS_WATER_KB = 158
+
+--- @type CharacterAnimID
+CHAR_ANIM_SWIM_WITH_OBJ_PART1 = 159
+
+--- @type CharacterAnimID
+CHAR_ANIM_SWIM_WITH_OBJ_PART2 = 160
+
+--- @type CharacterAnimID
+CHAR_ANIM_FLUTTERKICK_WITH_OBJ = 161
+
+--- @type CharacterAnimID
+CHAR_ANIM_WATER_ACTION_END_WITH_OBJ = 162
+
+--- @type CharacterAnimID
+CHAR_ANIM_STOP_GRAB_OBJ_WATER = 163
+
+--- @type CharacterAnimID
+CHAR_ANIM_WATER_IDLE_WITH_OBJ = 164
+
+--- @type CharacterAnimID
+CHAR_ANIM_DROWNING_PART1 = 165
+
+--- @type CharacterAnimID
+CHAR_ANIM_DROWNING_PART2 = 166
+
+--- @type CharacterAnimID
+CHAR_ANIM_WATER_DYING = 167
+
+--- @type CharacterAnimID
+CHAR_ANIM_WATER_FORWARD_KB = 168
+
+--- @type CharacterAnimID
+CHAR_ANIM_FALL_FROM_WATER = 169
+
+--- @type CharacterAnimID
+CHAR_ANIM_SWIM_PART1 = 170
+
+--- @type CharacterAnimID
+CHAR_ANIM_SWIM_PART2 = 171
+
+--- @type CharacterAnimID
+CHAR_ANIM_FLUTTERKICK = 172
+
+--- @type CharacterAnimID
+CHAR_ANIM_WATER_ACTION_END = 173
+
+--- @type CharacterAnimID
+CHAR_ANIM_WATER_PICK_UP_OBJ = 174
+
+--- @type CharacterAnimID
+CHAR_ANIM_WATER_GRAB_OBJ_PART2 = 175
+
+--- @type CharacterAnimID
+CHAR_ANIM_WATER_GRAB_OBJ_PART1 = 176
+
+--- @type CharacterAnimID
+CHAR_ANIM_WATER_THROW_OBJ = 177
+
+--- @type CharacterAnimID
+CHAR_ANIM_WATER_IDLE = 178
+
+--- @type CharacterAnimID
+CHAR_ANIM_WATER_STAR_DANCE = 179
+
+--- @type CharacterAnimID
+CHAR_ANIM_RETURN_FROM_WATER_STAR_DANCE = 180
+
+--- @type CharacterAnimID
+CHAR_ANIM_GRAB_BOWSER = 181
+
+--- @type CharacterAnimID
+CHAR_ANIM_SWINGING_BOWSER = 182
+
+--- @type CharacterAnimID
+CHAR_ANIM_RELEASE_BOWSER = 183
+
+--- @type CharacterAnimID
+CHAR_ANIM_HOLDING_BOWSER = 184
+
+--- @type CharacterAnimID
+CHAR_ANIM_HEAVY_THROW = 185
+
+--- @type CharacterAnimID
+CHAR_ANIM_WALK_PANTING = 186
+
+--- @type CharacterAnimID
+CHAR_ANIM_WALK_WITH_HEAVY_OBJ = 187
+
+--- @type CharacterAnimID
+CHAR_ANIM_TURNING_PART1 = 188
+
+--- @type CharacterAnimID
+CHAR_ANIM_TURNING_PART2 = 189
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLIDEFLIP_LAND = 190
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLIDEFLIP = 191
+
+--- @type CharacterAnimID
+CHAR_ANIM_TRIPLE_JUMP_LAND = 192
+
+--- @type CharacterAnimID
+CHAR_ANIM_TRIPLE_JUMP = 193
+
+--- @type CharacterAnimID
+CHAR_ANIM_FIRST_PERSON = 194
+
+--- @type CharacterAnimID
+CHAR_ANIM_IDLE_HEAD_LEFT = 195
+
+--- @type CharacterAnimID
+CHAR_ANIM_IDLE_HEAD_RIGHT = 196
+
+--- @type CharacterAnimID
+CHAR_ANIM_IDLE_HEAD_CENTER = 197
+
+--- @type CharacterAnimID
+CHAR_ANIM_HANDSTAND_LEFT = 198
+
+--- @type CharacterAnimID
+CHAR_ANIM_HANDSTAND_RIGHT = 199
+
+--- @type CharacterAnimID
+CHAR_ANIM_WAKE_FROM_SLEEP = 200
+
+--- @type CharacterAnimID
+CHAR_ANIM_WAKE_FROM_LYING = 201
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_TIPTOE = 202
+
+--- @type CharacterAnimID
+CHAR_ANIM_SLIDEJUMP = 203
+
+--- @type CharacterAnimID
+CHAR_ANIM_START_WALLKICK = 204
+
+--- @type CharacterAnimID
+CHAR_ANIM_STAR_DANCE = 205
+
+--- @type CharacterAnimID
+CHAR_ANIM_RETURN_FROM_STAR_DANCE = 206
+
+--- @type CharacterAnimID
+CHAR_ANIM_FORWARD_SPINNING_FLIP = 207
+
+--- @type CharacterAnimID
+CHAR_ANIM_TRIPLE_JUMP_FLY = 208
+
+--- @type CharacterAnimID
+CHAR_ANIM_MAX = 209
 
 --- @class MarioAnimID
 
@@ -4657,6 +5369,12 @@ MARIO_ANIM_FORWARD_SPINNING_FLIP = 207
 --- @type MarioAnimID
 MARIO_ANIM_TRIPLE_JUMP_FLY = 208
 
+--- @type MarioAnimID
+WALUIGI_ANIM_WALKING = 209
+
+--- @type MarioAnimID
+WALUIGI_ANIM_RUNNING = 210
+
 --- @class MarioCapGSCId
 
 --- @type MarioCapGSCId
@@ -4733,6 +5451,12 @@ MARIO_HAND_HOLDING_WING_CAP = 4
 
 --- @type MarioHandGSCId
 MARIO_HAND_RIGHT_OPEN = 5
+
+--- @type integer
+MAX_KEYS = 512
+
+--- @type integer
+MAX_KEY_VALUE_LENGTH = 64
 
 --- @type integer
 PACKET_LENGTH = 3000
@@ -7549,6 +8273,9 @@ ACT_IDLE = 0x0C400201
 ACT_ID_MASK = 0x000001FF
 
 --- @type integer
+ACT_INDEX_MASK = (ACT_ID_MASK & ~ACT_GROUP_MASK)
+
+--- @type integer
 ACT_INTRO_CUTSCENE = 0x04001301
 
 --- @type integer
@@ -7622,6 +8349,12 @@ ACT_METAL_WATER_WALKING = 0x000044F2
 
 --- @type integer
 ACT_MOVE_PUNCHING = 0x00800457
+
+--- @type integer
+ACT_NUM_ACTIONS_PER_GROUP = (ACT_INDEX_MASK + 1)
+
+--- @type integer
+ACT_NUM_GROUPS = ((ACT_GROUP_MASK >> 6) + 1)
 
 --- @type integer
 ACT_PANTING = 0x0C400205
@@ -8288,7 +9021,13 @@ HOOK_ON_OBJECT_ANIM_UPDATE = 32
 HOOK_ON_DIALOG = 33
 
 --- @type LuaHookedEventType
-HOOK_MAX = 34
+HOOK_ON_HUD_RENDER_BEHIND = 34
+
+--- @type LuaHookedEventType
+HOOK_MIRROR_MARIO_RENDER = 35
+
+--- @type LuaHookedEventType
+HOOK_MAX = 36
 
 --- @class HudDisplayFlags
 
@@ -11586,7 +12325,7 @@ MINOR_VERSION_NUMBER = 0
 PATCH_VERSION_NUMBER = 0
 
 --- @type integer
-VERSION_NUMBER = 35
+VERSION_NUMBER = 36
 
 --- @type string
 VERSION_REGION = "JP"

@@ -100,6 +100,9 @@ unsigned int configKeyDUp[MAX_BINDS]        = { 0x0147,   0x100b,     VK_INVALID
 unsigned int configKeyDDown[MAX_BINDS]      = { 0x014f,   0x100c,     VK_INVALID };
 unsigned int configKeyDLeft[MAX_BINDS]      = { 0x0153,   0x100d,     VK_INVALID };
 unsigned int configKeyDRight[MAX_BINDS]     = { 0x0151,   0x100e,     VK_INVALID };
+unsigned int configKeyConsole[MAX_BINDS]    = { 0x0029,   0x003B,     VK_INVALID };
+unsigned int configKeyPrevPage[MAX_BINDS]   = { 0x0016,   VK_INVALID, VK_INVALID };
+unsigned int configKeyNextPage[MAX_BINDS]   = { 0x0018,   VK_INVALID, VK_INVALID };
 unsigned int configStickDeadzone = 16; // 16*DEADZONE_STEP=4960 (the original default deadzone)
 unsigned int configRumbleStrength = 50;
 #ifdef EXTERNAL_DATA
@@ -119,7 +122,6 @@ bool         configCameraAnalog  = true;
 bool         configCameraMouse   = true;
 #endif
 bool         configSkipIntro     = 0;
-bool         configEnableCheats  = 0;
 bool         configBubbleDeath   = true;
 unsigned int configAmountofPlayers = 16;
 bool         configHUD           = true;
@@ -140,6 +142,7 @@ bool         configMenuRandom                    = false;
 bool         configMenuDemos                     = false;
 struct PlayerPalette configPlayerPalette         = {{{ 0x00, 0x00, 0xff }, { 0xff, 0x00, 0x00 }, { 0xff, 0xff, 0xff }, { 0x72, 0x1c, 0x0e }, { 0x73, 0x06, 0x00 }, { 0xfe, 0xc1, 0x79 }, { 0xff, 0x00, 0x00 }}};
 struct PlayerPalette configCustomPalette         = {{{ 0x00, 0x00, 0xff }, { 0xff, 0x00, 0x00 }, { 0xff, 0xff, 0xff }, { 0x72, 0x1c, 0x0e }, { 0x73, 0x06, 0x00 }, { 0xfe, 0xc1, 0x79 }, { 0xff, 0x00, 0x00 }}};
+bool         configShowFPS                       = false;
 bool         configUncappedFramerate             = true;
 unsigned int configFrameLimit                    = 60;
 unsigned int configDrawDistance                  = 5;
@@ -199,6 +202,8 @@ static const struct ConfigOption options[] = {
     {.name = "key_ddown",            .type = CONFIG_TYPE_BIND, .uintValue = configKeyDDown},
     {.name = "key_dleft",            .type = CONFIG_TYPE_BIND, .uintValue = configKeyDLeft},
     {.name = "key_dright",           .type = CONFIG_TYPE_BIND, .uintValue = configKeyDRight},
+    {.name = "key_prev",             .type = CONFIG_TYPE_BIND, .uintValue = configKeyPrevPage},
+    {.name = "key_next",             .type = CONFIG_TYPE_BIND, .uintValue = configKeyNextPage},
     {.name = "stick_deadzone",       .type = CONFIG_TYPE_UINT, .uintValue = &configStickDeadzone},
     {.name = "rumble_strength",      .type = CONFIG_TYPE_UINT, .uintValue = &configRumbleStrength},
     #ifdef EXTERNAL_DATA
@@ -217,11 +222,11 @@ static const struct ConfigOption options[] = {
     {.name = "bettercam_degrade",    .type = CONFIG_TYPE_UINT, .uintValue = &configCameraDegrade},
     #endif
     {.name = "skip_intro",           .type = CONFIG_TYPE_BOOL, .boolValue = &configSkipIntro},
-    {.name = "enable_cheats",        .type = CONFIG_TYPE_BOOL, .boolValue = &configEnableCheats},
     // debug
     {.name = "debug_offset",                   .type = CONFIG_TYPE_U64   , .u64Value    = &gPcDebug.bhvOffset},
     {.name = "debug_tags",                     .type = CONFIG_TYPE_U64   , .u64Value    = gPcDebug.tags},
     // coop-specific
+    {.name = "show_fps",                       .type = CONFIG_TYPE_BOOL  , .boolValue   = &configShowFPS},
     {.name = "uncapped_framerate",             .type = CONFIG_TYPE_BOOL  , .boolValue   = &configUncappedFramerate},
     {.name = "frame_limit"       ,             .type = CONFIG_TYPE_UINT  , .uintValue   = &configFrameLimit},
     {.name = "amount_of_players",              .type = CONFIG_TYPE_UINT  , .uintValue   = &configAmountofPlayers},
@@ -368,6 +373,23 @@ static const struct ConfigOption options[] = {
 
 // FunctionConfigOption functions
 
+struct QueuedMods {
+    char* path;
+    struct QueuedMods *next;
+};
+
+static struct QueuedMods *sQueuedEnableModsHead = NULL;
+
+void enable_queued_mods() {
+    while (sQueuedEnableModsHead) {
+        struct QueuedMods *next = sQueuedEnableModsHead->next;
+        mods_enable(sQueuedEnableModsHead->path);
+        free(sQueuedEnableModsHead->path);
+        free(sQueuedEnableModsHead);
+        sQueuedEnableModsHead = next;
+    }
+}
+
 static void enable_mod_read(char** tokens, UNUSED int numTokens) {
     char combined[256] = { 0 };
     for (int i = 1; i < numTokens; i++) {
@@ -375,7 +397,16 @@ static void enable_mod_read(char** tokens, UNUSED int numTokens) {
         strncat(combined, tokens[i], 255);
     }
 
-    mods_enable(combined);
+    struct QueuedMods* queued = malloc(sizeof(struct QueuedMods));
+    queued->path = strdup(combined);
+    queued->next = NULL;
+    if (!sQueuedEnableModsHead) {
+        sQueuedEnableModsHead = queued;
+    } else {
+        struct QueuedMods* tail = sQueuedEnableModsHead;
+        while (tail->next) { tail = tail->next; }
+        tail->next = queued;
+    }
 }
 
 static void enable_mod_write(FILE* file) {

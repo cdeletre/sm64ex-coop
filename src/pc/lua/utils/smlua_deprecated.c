@@ -1,7 +1,9 @@
+#include <inttypes.h>
 #include "types.h"
 #ifdef DISCORD_SDK
 #include "pc/discord/discord.h"
 #endif
+#include "pc/lua/smlua.h"
 
 char* network_discord_id_from_local_index(u8 localIndex) {
 #ifdef DISCORD_SDK
@@ -12,4 +14,9 @@ char* network_discord_id_from_local_index(u8 localIndex) {
     }
 #endif
     return NULL;
+}
+
+void djui_hud_set_render_behind_hud(bool enable) {
+    if (!gLuaActiveMod) { return; }
+    gLuaActiveMod->renderBehindHud = enable;
 }

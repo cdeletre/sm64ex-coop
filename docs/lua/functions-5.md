@@ -54,6 +54,26 @@
 
 <br />
 
+## [camera_allow_toxic_gas_camera](#camera_allow_toxic_gas_camera)
+
+### Lua Example
+`camera_allow_toxic_gas_camera(allow)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| allow | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void camera_allow_toxic_gas_camera(u8 allow);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [camera_config_enable_analog_cam](#camera_config_enable_analog_cam)
 
 ### Lua Example
@@ -508,6 +528,26 @@
 
 <br />
 
+## [camera_romhack_allow_dpad_usage](#camera_romhack_allow_dpad_usage)
+
+### Lua Example
+`camera_romhack_allow_dpad_usage(allow)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| allow | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void camera_romhack_allow_dpad_usage(u8 allow);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [camera_set_romhack_override](#camera_set_romhack_override)
 
 ### Lua Example
@@ -586,6 +626,24 @@
 
 <br />
 
+## [djui_is_popup_disabled](#djui_is_popup_disabled)
+
+### Lua Example
+`local booleanValue = djui_is_popup_disabled()`
+
+### Parameters
+- None
+
+### Returns
+- `boolean`
+
+### C Prototype
+`bool djui_is_popup_disabled(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [djui_popup_create_global](#djui_popup_create_global)
 
 ### Lua Example
@@ -602,6 +660,44 @@
 
 ### C Prototype
 `void djui_popup_create_global(const char* message, int lines);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [djui_reset_popup_disabled_override](#djui_reset_popup_disabled_override)
+
+### Lua Example
+`djui_reset_popup_disabled_override()`
+
+### Parameters
+- None
+
+### Returns
+- None
+
+### C Prototype
+`void djui_reset_popup_disabled_override(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [djui_set_popup_disabled_override](#djui_set_popup_disabled_override)
+
+### Lua Example
+`djui_set_popup_disabled_override(value)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| value | `boolean` |
+
+### Returns
+- None
+
+### C Prototype
+`void djui_set_popup_disabled_override(bool value);`
 
 [:arrow_up_small:](#)
 
@@ -904,7 +1000,7 @@
 - `string`
 
 ### C Prototype
-`char* get_os_name(void);`
+`const char* get_os_name(void);`
 
 [:arrow_up_small:](#)
 
@@ -1180,6 +1276,26 @@
 
 ### C Prototype
 `bool is_transition_playing(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [log_to_console](#log_to_console)
+
+### Lua Example
+`log_to_console(message)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| message | `string` |
+
+### Returns
+- None
+
+### C Prototype
+`void log_to_console(const char* message);`
 
 [:arrow_up_small:](#)
 
@@ -2290,6 +2406,91 @@
 <br />
 
 
+## [smlua_text_utils_act_name_get](#smlua_text_utils_act_name_get)
+
+### Lua Example
+`local stringValue = smlua_text_utils_act_name_get(courseNum, actNum)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| courseNum | `integer` |
+| actNum | `integer` |
+
+### Returns
+- `string`
+
+### C Prototype
+`const char* smlua_text_utils_act_name_get(s16 courseNum, u8 actNum);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [smlua_text_utils_act_name_mod_index](#smlua_text_utils_act_name_mod_index)
+
+### Lua Example
+`local integerValue = smlua_text_utils_act_name_mod_index(courseNum, actNum)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| courseNum | `integer` |
+| actNum | `integer` |
+
+### Returns
+- `integer`
+
+### C Prototype
+`s32 smlua_text_utils_act_name_mod_index(s16 courseNum, u8 actNum);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [smlua_text_utils_act_name_replace](#smlua_text_utils_act_name_replace)
+
+### Lua Example
+`smlua_text_utils_act_name_replace(courseNum, actNum, name)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| courseNum | `integer` |
+| actNum | `integer` |
+| name | `string` |
+
+### Returns
+- None
+
+### C Prototype
+`void smlua_text_utils_act_name_replace(s16 courseNum, u8 actNum, const char* name);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [smlua_text_utils_act_name_reset](#smlua_text_utils_act_name_reset)
+
+### Lua Example
+`smlua_text_utils_act_name_reset(courseNum, actNum)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| courseNum | `integer` |
+| actNum | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void smlua_text_utils_act_name_reset(s16 courseNum, u8 actNum);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [smlua_text_utils_castle_secret_stars_replace](#smlua_text_utils_castle_secret_stars_replace)
 
 ### Lua Example
@@ -2332,6 +2533,87 @@
 
 ### C Prototype
 `void smlua_text_utils_course_acts_replace(s16 courseNum, const char* courseName, const char* act1, const char* act2, const char* act3, const char* act4, const char* act5, const char* act6);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [smlua_text_utils_course_name_get](#smlua_text_utils_course_name_get)
+
+### Lua Example
+`local stringValue = smlua_text_utils_course_name_get(courseNum)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| courseNum | `integer` |
+
+### Returns
+- `string`
+
+### C Prototype
+`const char* smlua_text_utils_course_name_get(s16 courseNum);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [smlua_text_utils_course_name_mod_index](#smlua_text_utils_course_name_mod_index)
+
+### Lua Example
+`local integerValue = smlua_text_utils_course_name_mod_index(courseNum)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| courseNum | `integer` |
+
+### Returns
+- `integer`
+
+### C Prototype
+`s32 smlua_text_utils_course_name_mod_index(s16 courseNum);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [smlua_text_utils_course_name_replace](#smlua_text_utils_course_name_replace)
+
+### Lua Example
+`smlua_text_utils_course_name_replace(courseNum, name)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| courseNum | `integer` |
+| name | `string` |
+
+### Returns
+- None
+
+### C Prototype
+`void smlua_text_utils_course_name_replace(s16 courseNum, const char* name);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [smlua_text_utils_course_name_reset](#smlua_text_utils_course_name_reset)
+
+### Lua Example
+`smlua_text_utils_course_name_reset(courseNum)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| courseNum | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void smlua_text_utils_course_name_reset(s16 courseNum);`
 
 [:arrow_up_small:](#)
 
@@ -2395,25 +2677,7 @@
 - `string`
 
 ### C Prototype
-`char* smlua_text_utils_get_language(void);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [smlua_text_utils_reset_all](#smlua_text_utils_reset_all)
-
-### Lua Example
-`smlua_text_utils_reset_all()`
-
-### Parameters
-- None
-
-### Returns
-- None
-
-### C Prototype
-`void smlua_text_utils_reset_all(void);`
+`const char* smlua_text_utils_get_language(void);`
 
 [:arrow_up_small:](#)
 

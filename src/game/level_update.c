@@ -47,15 +47,8 @@
 
 #include "engine/level_script.h"
 
-#define WARP_NODE_F0 0xF0
-#define WARP_NODE_DEATH 0xF1
-#define WARP_NODE_F2 0xF2
-#define WARP_NODE_WARP_FLOOR 0xF3
-#define WARP_NODE_CREDITS_START 0xF8
-#define WARP_NODE_CREDITS_NEXT 0xF9
-#define WARP_NODE_CREDITS_END 0xFA
-
-#define WARP_NODE_CREDITS_MIN 0xF8
+#define MENU_LEVEL_MIN 0
+#define MENU_LEVEL_MAX 16
 
 struct SavedWarpValues gReceiveWarp = { 0 };
 extern s8 sReceivedLoadedActNum;
@@ -67,7 +60,7 @@ s16 gChangeLevelTransition = -1;
 s16 gChangeActNum = -1;
 
 static bool sFirstCastleGroundsMenu = true;
-static bool sIsDemoActive = false;
+bool gIsDemoActive = false;
 bool gInPlayerMenu = false;
 static u16 gDemoCountdown = 0;
 static int sDemoNumber = -1;
@@ -199,7 +192,7 @@ s32 sDelayedWarpArg;
 s16 unusedEULevelUpdateBss1;
 #endif
 s8 sTimerRunning;
-s8 gNeverEnteredCastle;
+bool gNeverEnteredCastle;
 
 struct MarioState *gMarioState = &gMarioStates[0];
 u8 unused1[4] = { 0 };
@@ -251,12 +244,15 @@ u16 level_control_timer(s32 timerOp) {
 }
 
 u32 pressed_pause(void) {
-    u32 val4 = get_dialog_id() >= 0;
-    u32 intangible = (gMarioState->action & ACT_FLAG_INTANGIBLE) != 0;
+    if (configSingleplayerPause && network_player_connected_count() == 1) {
+        // prevent softlock in singleplayer pause, by not allowing pause in transitions
+        if (gWarpTransition.isActive || sDelayedWarpOp != WARP_OP_NONE) {
+            return FALSE;
+        }
+    }
 
-    if (!intangible && !val4 && !gWarpTransition.isActive && sDelayedWarpOp == WARP_OP_NONE
-        && (gPlayer1Controller->buttonPressed & START_BUTTON)) {
-        return TRUE;
+    if (get_dialog_id() < 0) {
+        return gPlayer1Controller->buttonPressed & START_BUTTON;
     }
 
     return FALSE;
@@ -268,6 +264,11 @@ void set_play_mode(s16 playMode) {
 }
 
 void warp_special(s32 arg) {
+    if (arg != SPECIAL_WARP_CAKE && arg != SPECIAL_WARP_GODDARD && arg != SPECIAL_WARP_GODDARD_GAMEOVER && arg != SPECIAL_WARP_TITLE && arg != SPECIAL_WARP_LEVEL_SELECT) {
+        LOG_ERROR("Invalid parameter value for warp_special: Expected SPECIAL_WARP_CAKE, SPECIAL_WARP_GODDARD, SPECIAL_WARP_GODDARD_GAMEOVER, SPECIAL_WARP_TITLE, or SPECIAL_WARP_LEVEL_SELECT");
+        return;
+    }
+
     sCurrPlayMode = PLAY_MODE_CHANGE_LEVEL;
     D_80339ECA = 0;
     D_80339EE0 = arg;
@@ -534,6 +535,10 @@ void init_mario_after_warp(void) {
         gMarioState->health = 0x880;
     }
 
+    if (gMarioState) {
+        gMarioState->skipWarpInteractionsTimer = 30;
+    }
+
     smlua_call_event_hooks(HOOK_ON_WARP);
 }
 
@@ -604,7 +609,9 @@ void warp_credits(void) {
 
     set_mario_action(gMarioState, marioAction, 0);
 
+    if (gCurrentArea) {
     reset_camera(gCurrentArea->camera);
+    }
 
     sWarpDest.type = WARP_TYPE_NOT_WARPING;
     sDelayedWarpOp = WARP_OP_NONE;
@@ -612,7 +619,9 @@ void warp_credits(void) {
     play_transition(WARP_TRANSITION_FADE_FROM_COLOR, 0x14, 0x00, 0x00, 0x00);
 
     if (gCurrCreditsEntry == NULL || gCurrCreditsEntry == sCreditsSequence) {
+        if (gCurrentArea) {
         set_background_music(gCurrentArea->musicParam, gCurrentArea->musicParam2, 0);
+    }
     }
 }
 
@@ -969,12 +978,12 @@ void initiate_delayed_warp(void) {
         reset_dialog_render_state();
 
         if (gDebugLevelSelect && (sDelayedWarpOp & WARP_OP_TRIGGERS_LEVEL_SELECT)) {
-            warp_special(-9);
+            warp_special(SPECIAL_WARP_LEVEL_SELECT);
         } else if (gCurrDemoInput != NULL) {
             if (sDelayedWarpOp == WARP_OP_DEMO_END) {
-                warp_special(-8);
+                warp_special(SPECIAL_WARP_TITLE);
             } else {
-                warp_special(-2);
+                warp_special(SPECIAL_WARP_GODDARD);
             }
         } else {
             switch (sDelayedWarpOp) {
@@ -985,14 +994,14 @@ void initiate_delayed_warp(void) {
                     break;
 
                 case WARP_OP_CREDITS_END:
-                    warp_special(-1);
+                    warp_special(SPECIAL_WARP_CAKE);
                     sound_banks_enable(SEQ_PLAYER_SFX,
                                        SOUND_BANKS_ALL & ~SOUND_BANKS_DISABLED_AFTER_CREDITS);
                     break;
 
                 case WARP_OP_DEMO_NEXT:
                     if (!gDjuiInMainMenu) {
-                        warp_special(-2);
+                        warp_special(SPECIAL_WARP_GODDARD);
                     }
                     break;
 
@@ -1069,28 +1078,28 @@ void update_hud_values(void) {
                 gHudDisplay.coins += 1;
                 play_sound(coinSound, gMarioState->marioObj->header.gfx.cameraToObject);
 
-                if (gServerSettings.stayInLevelAfterStar > 0 && gCurrCourseNum != COURSE_NONE && (gHudDisplay.coins == 50 || gHudDisplay.coins == 100 || gHudDisplay.coins == 150)) {
+                if (gServerSettings.stayInLevelAfterStar > 0 && gCurrCourseNum != COURSE_NONE && (gHudDisplay.coins % gLevelValues.numCoinsToLife == 0 && gHudDisplay.coins > 0)) {
                     gMarioState->numLives++;
                     play_sound(SOUND_GENERAL_COLLECT_1UP, gGlobalSoundSource);
                 }
             }
         }
 
-        if (gMarioState->numLives > 100) {
-            gMarioState->numLives = 100;
+        if (gMarioState->numLives > gLevelValues.maxLives) {
+            gMarioState->numLives = gLevelValues.maxLives;
         }
 
 #if BUGFIX_MAX_LIVES
-        if (gMarioState->numCoins > 999) {
-            gMarioState->numCoins = 999;
+        if (gMarioState->numCoins > gLevelValues.maxCoins) {
+            gMarioState->numCoins = gLevelValues.maxCoins;
         }
 
-        if (gHudDisplay.coins > 999) {
-            gHudDisplay.coins = 999;
+        if (gHudDisplay.coins > gLevelValues.maxCoins) {
+            gHudDisplay.coins = gLevelValues.maxCoins;
         }
 #else
-        if (gMarioState->numCoins > 999) {
-            gMarioState->numCoins = (s16) 999;
+        if (gMarioState->numCoins > gLevelValues.maxCoins) {
+            gMarioState->numCoins = (s16) gLevelValues.maxCoins;
         }
 #endif
 
@@ -1156,10 +1165,10 @@ bool find_demo_number(void) {
 }
 
 static void start_demo(void) {
-    if (sIsDemoActive) {
-        sIsDemoActive = false;
+    if (gIsDemoActive) {
+        gIsDemoActive = false;
     } else {
-        sIsDemoActive = true;
+        gIsDemoActive = true;
 
         if (find_demo_number()) {
             gChangeLevel = gCurrLevelNum;
@@ -1171,14 +1180,14 @@ static void start_demo(void) {
             load_patchable_table(&gDemo, sDemoNumber);
             gCurrDemoInput = ((struct DemoInput *) gDemo.targetAnim);
         } else {
-            sIsDemoActive = false;
+            gIsDemoActive = false;
         }
     }
 }
 
 void stop_demo(UNUSED struct DjuiBase* caller) {
-    if (sIsDemoActive) {
-        sIsDemoActive = false;
+    if (gIsDemoActive) {
+        gIsDemoActive = false;
         gCurrDemoInput = NULL;
         gChangeLevel = gCurrLevelNum;
         gDemoCountdown = 0;
@@ -1195,22 +1204,26 @@ s32 play_mode_normal(void) {
         if (gCurrDemoInput != NULL) {
             print_intro_text();
             if (gPlayer1Controller->buttonPressed & END_DEMO) {
-                level_trigger_warp(gMarioState,
-                                   gCurrLevelNum == LEVEL_PSS ? WARP_OP_DEMO_END : WARP_OP_DEMO_NEXT);
-            } else if (!gWarpTransition.isActive && sDelayedWarpOp == WARP_OP_NONE
-                       && (gPlayer1Controller->buttonPressed & START_BUTTON)) {
+                level_trigger_warp(gMarioState, gCurrLevelNum == LEVEL_PSS ? WARP_OP_DEMO_END : WARP_OP_DEMO_NEXT);
+            } else if (!gWarpTransition.isActive && sDelayedWarpOp == WARP_OP_NONE && (gPlayer1Controller->buttonPressed & START_BUTTON)) {
                 gPressedStart = 1;
                 level_trigger_warp(gMarioState, WARP_OP_DEMO_NEXT);
             }
         }
     } else {
-        if (gDjuiInMainMenu && gCurrDemoInput == NULL && configMenuDemos && !gInPlayerMenu) {
-            if ((++gDemoCountdown) == PRESS_START_DEMO_TIMER && (find_demo_number() && (sDemoNumber <= 6 && sDemoNumber > -1))) {
+        if (gDjuiInMainMenu &&
+            gCurrDemoInput == NULL &&
+            configMenuDemos &&
+            !gInPlayerMenu &&
+            (++gDemoCountdown) == PRESS_START_DEMO_TIMER &&
+            (find_demo_number() && (sDemoNumber <= 6 && sDemoNumber > -1)) &&
+            gNetworkType == NT_NONE) {
                 start_demo();
             }
-        }
 
-        if (((gCurrDemoInput != NULL) && (gPlayer1Controller->buttonPressed & END_DEMO || !sIsDemoActive || !gDjuiInMainMenu || gNetworkType != NT_NONE || gInPlayerMenu)) || (gCurrDemoInput == NULL && sIsDemoActive)) {
+        if (((gCurrDemoInput != NULL) &&
+            (gPlayer1Controller->buttonPressed & END_DEMO || !gIsDemoActive || !gDjuiInMainMenu || gNetworkType != NT_NONE || gInPlayerMenu)) ||
+            (gCurrDemoInput == NULL && gIsDemoActive)) {
             gPlayer1Controller->buttonPressed &= ~END_DEMO;
             stop_demo(NULL);
         }
@@ -1399,7 +1412,7 @@ s32 play_mode_change_level(void) {
 /**
  * Unused play mode. Doesn't call transition update and doesn't reset transition at the end.
  */
-static s32 play_mode_unused(void) {
+UNUSED static s32 play_mode_unused(void) {
     if (--sTransitionTimer == -1) {
         gHudDisplay.flags = HUD_DISPLAY_NONE;
 
@@ -1440,21 +1453,15 @@ void update_menu_level(void) {
 
     // warp to level, this feels buggy
     if (gCurrLevelNum != curLevel) {
-        if (sIsDemoActive) {
+        if (gIsDemoActive) {
             stop_demo(NULL);
         }
-        if (curLevel == LEVEL_JRB) {
-            gChangeLevel = curLevel;
-            gChangeActNum = 2;
-        } else if (curLevel == LEVEL_THI) {
-            gChangeLevel = LEVEL_THI;
-        } else {
+
             gChangeLevel = curLevel;
             gChangeActNum = 6;
-        }
         gDemoCountdown = 0;
     }
-    if (sIsDemoActive) {
+    if (gIsDemoActive) {
         return;
     }
 
@@ -1599,16 +1606,8 @@ void update_menu_level(void) {
         disable_background_sound();
 
         if (get_current_background_music() == 0x0021) {
-            if (curLevel == LEVEL_JRB) {
-                gChangeLevel = curLevel;
-                gChangeActNum = 2;
-            } else if (curLevel == LEVEL_THI) {
                 gChangeLevel = curLevel;
                 gChangeActNum = 6;
-            } else {
-                gChangeLevel = curLevel;
-                gChangeActNum = 6;
-            }
         }
     }
 }
@@ -1730,14 +1729,13 @@ s32 init_level(void) {
             if (gCurrDemoInput != NULL) {
                 set_mario_action(gMarioState, ACT_IDLE, 0);
             } else if (!gDebugLevelSelect) {
-                if (gMarioState->action != ACT_UNINITIALIZED) {
+                if (gMarioState && gMarioState->action != ACT_UNINITIALIZED) {
                     bool skipIntro = (gNetworkType == NT_NONE || gServerSettings.skipIntro != 0);
                     if (gDjuiInMainMenu && (gNetworkType == NT_NONE)) {
                         // pick random main menu level
                         if (configMenuRandom) {
-                            int lower = 0, upper = 10;
                             srand(time(0));
-                            int randLevel = (rand() % (upper - lower + 1)) + lower;
+                            int randLevel = rand() % (MENU_LEVEL_MAX - MENU_LEVEL_MIN) + 1;
                             configMenuLevel = randLevel;
                         }
 
@@ -1763,7 +1761,7 @@ s32 init_level(void) {
             play_transition(WARP_TRANSITION_FADE_FROM_STAR, 0x10, 0xFF, 0xFF, 0xFF);
         }
 
-        if (gCurrDemoInput == NULL) {
+        if (gCurrDemoInput == NULL && gCurrentArea) {
             set_background_music(gCurrentArea->musicParam, gCurrentArea->musicParam2, 0);
         }
     }
@@ -1772,7 +1770,7 @@ s32 init_level(void) {
         cancel_rumble();
     }
 
-    if (gMarioState->action == ACT_INTRO_CUTSCENE) {
+    if (gMarioState && gMarioState->action == ACT_INTRO_CUTSCENE) {
         sound_banks_disable(SEQ_PLAYER_SFX, SOUND_BANKS_DISABLED_DURING_INTRO_CUTSCENE);
     }
 
@@ -1780,6 +1778,10 @@ s32 init_level(void) {
         network_player_update_course_level(gNetworkPlayerLocal, gCurrCourseNum, gCurrActStarNum, gCurrLevelNum, gCurrAreaIndex);
     }
     smlua_call_event_hooks(HOOK_ON_LEVEL_INIT);
+
+    // clear texture 1 on level init -- can linger and corrupt textures otherwise
+    extern u8 gGfxPcResetTex1;
+    gGfxPcResetTex1 = 1;
 
     return 1;
 }
@@ -1846,7 +1848,7 @@ s32 lvl_set_current_level(UNUSED s16 arg0, s32 levelNum) {
 
     sWarpCheckpointActive = FALSE;
     gCurrLevelNum = levelNum;
-    gCurrCourseNum = get_level_course_num(levelNum - 1);
+    gCurrCourseNum = get_level_course_num(levelNum);
 
     bool foundHook = false;
     bool hookUseActSelect = false;

@@ -82,6 +82,11 @@ struct LevelValues {
     s16 floorLowerLimitShadow;
     bool pauseExitAnywhere;
     bool disableActs;
+    u16 maxLives;
+    u16 maxCoins;
+    u16 numCoinsToLife;
+    bool bubbleOnDeathBarrierInCapStages;
+    f32 wdwWaterLevelSpeed;
 };
 
 extern struct LevelValues gLevelValues;
@@ -243,6 +248,7 @@ struct BehaviorValues {
     f32 BowlingBallThiLargeSpeed;
     f32 BowlingBallThiSmallSpeed;
     u16 GrateStarRequirement;
+    f32 ChillBullyDeathPosY;
     u8  ShowStarMilestones;
     u8  RespawnShellBoxes;
     u8  MultipleCapCollection;

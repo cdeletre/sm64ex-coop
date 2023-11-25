@@ -25,6 +25,7 @@
 #include "hardcoded.h"
 #include "sound_init.h"
 #include "pc/network/network.h"
+#include "pc/lua/smlua_hooks.h"
 
 #define TOAD_STAR_1_REQUIREMENT gBehaviorValues.ToadStar1Requirement
 #define TOAD_STAR_2_REQUIREMENT gBehaviorValues.ToadStar2Requirement
@@ -430,8 +431,7 @@ Gfx* geo_mario_tilt_torso(s32 callContext, struct GraphNode* node, Mat4* mtx) {
     if (callContext == GEO_CONTEXT_RENDER) {
         struct GraphNodeRotation* rotNode = (struct GraphNodeRotation*) node->next;
 
-        if (action != ACT_BUTT_SLIDE && action != ACT_HOLD_BUTT_SLIDE && action != ACT_WALKING
-            && action != ACT_RIDING_SHELL_GROUND) {
+        if (action != ACT_BUTT_SLIDE && action != ACT_HOLD_BUTT_SLIDE && action != ACT_WALKING && action != ACT_RIDING_SHELL_GROUND) {
             vec3s_copy(bodyState->torsoAngle, gVec3sZero);
         }
         rotNode->rotation[0] = bodyState->torsoAngle[1] * character->torsoRotMult;
@@ -673,6 +673,7 @@ Gfx* geo_render_mirror_mario(s32 callContext, struct GraphNode* node, UNUSED Mat
     for (s32 i = 0; i < MAX_PLAYERS; i++) {
         f32 mirroredX;
         struct MarioState* marioState = &gMarioStates[i];
+        struct NetworkPlayer* np = &gNetworkPlayers[i];
         struct Object* mario = marioState->marioObj;
 
         switch (callContext) {
@@ -686,7 +687,7 @@ Gfx* geo_render_mirror_mario(s32 callContext, struct GraphNode* node, UNUSED Mat
                 geo_remove_child_from_parent(node, &gMirrorMario[i].node);
                 break;
             case GEO_CONTEXT_RENDER:
-                if (mario && (((struct GraphNode*)&mario->header.gfx)->flags & GRAPH_RENDER_ACTIVE)) {
+                if (mario && (((struct GraphNode*)&mario->header.gfx)->flags & GRAPH_RENDER_ACTIVE) && np->connected) {
                     // TODO: Is this a geo layout copy or a graph node copy?
                     gMirrorMario[i].sharedChild = mario->header.gfx.sharedChild;
                     dynos_actor_override((void*)&gMirrorMario[i].sharedChild);
@@ -705,6 +706,8 @@ Gfx* geo_render_mirror_mario(s32 callContext, struct GraphNode* node, UNUSED Mat
                     gMirrorMario[i].scale[0] *= -1.0f;
                     // TODO: does rendering the mirror room still crash?
                     gMirrorMario[i].node.flags |= GRAPH_RENDER_ACTIVE;
+
+                    smlua_call_event_hooks_graph_node_object_and_int_param(HOOK_MIRROR_MARIO_RENDER, &gMirrorMario[i], i);
                 } else {
                     gMirrorMario[i].node.flags &= ~GRAPH_RENDER_ACTIVE;
                 }
@@ -742,7 +745,11 @@ Gfx* geo_mirror_mario_backface_culling(s32 callContext, struct GraphNode* node, 
             gSPSetGeometryMode(&gfx[1], G_CULL_BACK);
             gSPEndDisplayList(&gfx[2]);
         }
+
         u32 layer = ((asGenerated->parameter & 0x02) == 2) ? LAYER_TRANSPARENT : LAYER_OPAQUE;
+        if ((asGenerated->parameter & 0xFC) != 0) {
+            layer = asGenerated->parameter >> 2;
+        }
         asGenerated->fnNode.node.flags = (asGenerated->fnNode.node.flags & 0xFF) | (layer << 8);
     }
     return gfx;
@@ -750,14 +757,18 @@ Gfx* geo_mirror_mario_backface_culling(s32 callContext, struct GraphNode* node, 
 
 static struct PlayerColor geo_mario_get_player_color(const struct PlayerPalette *palette) {
     struct PlayerColor color = { 0 };
+    u8 index = geo_get_processing_object_index();
+    struct MarioBodyState* bodyState = &gBodyStates[index];
     for (s32 part = 0; part != PLAYER_PART_MAX; ++part) {
         color.parts[part] = (Lights1) gdSPDefLights1(
-            palette->parts[part][0] / 2,
-            palette->parts[part][1] / 2,
-            palette->parts[part][2] / 2,
-            palette->parts[part][0],
-            palette->parts[part][1],
-            palette->parts[part][2], 
+            // Shadow
+            palette->parts[part][0] * bodyState->shadeR / 255.0f,
+            palette->parts[part][1] * bodyState->shadeG / 255.0f,
+            palette->parts[part][2] * bodyState->shadeB / 255.0f,
+            // Light
+            palette->parts[part][0] * bodyState->lightR / 255.0f,
+            palette->parts[part][1] * bodyState->lightG / 255.0f,
+            palette->parts[part][2] * bodyState->lightB / 255.0f,
             0x28, 0x28, 0x28
         );
     }

@@ -54,14 +54,31 @@ s8 gLevelToCourseNumTable[] = {
 #undef STUB_LEVEL
 #undef DEFINE_LEVEL
 
+#define STUB_LEVEL(_0, levelenum, _2, _3, _4, _5, _6, _7, _8) levelenum,
+#define DEFINE_LEVEL(_0, levelenum, _2, _3, _4, _5, _6, _7, _8, _9, _10) levelenum,
+s8 gCourseNumToLevelNumTable[] = {
+#include "levels/level_defines.h"
+};
+#undef STUB_LEVEL
+#undef DEFINE_LEVEL
+
 STATIC_ASSERT(ARRAY_COUNT(gLevelToCourseNumTable) == LEVEL_COUNT - 1,
               "change this array if you are adding levels");
+
+s8 get_level_num_from_course_num(s16 courseNum) {
+    if (courseNum < 0 || courseNum >= COURSE_COUNT) {
+        return LEVEL_NONE;
+    }
+    return gCourseNumToLevelNumTable[courseNum];
+}
 
 s8 get_level_course_num(s16 levelNum) {
     if (levelNum >= CUSTOM_LEVEL_NUM_START) {
         struct CustomLevelInfo* info = smlua_level_util_get_info(levelNum);
         return (info ? info->courseNum : COURSE_NONE);
     }
+
+    levelNum = levelNum - 1;
 
     if (INVALID_LEVEL_NUM(levelNum)) {
         return COURSE_NONE;
@@ -686,11 +703,37 @@ void save_file_set_star_flags(s32 fileIndex, s32 courseIndex, u32 starFlags) {
     gSaveFileModified = TRUE;
 }
 
+void save_file_remove_star_flags(s32 fileIndex, s32 courseIndex, u32 starFlagsToRemove) {
+    if (INVALID_FILE_INDEX(fileIndex)) { return; }
+    if (INVALID_SRC_SLOT(gSaveFileUsingBackupSlot)) { return; }
+    
+    if (courseIndex == -1) {
+        gSaveBuffer.files[fileIndex][gSaveFileUsingBackupSlot].flags &= ~STAR_FLAG_TO_SAVE_FLAG(starFlagsToRemove);
+        network_send_save_remove_flag(fileIndex, courseIndex, 0, STAR_FLAG_TO_SAVE_FLAG(starFlagsToRemove));
+    } 
+    else if (!INVALID_COURSE_STAR_INDEX(courseIndex)) {
+        gSaveBuffer.files[fileIndex][gSaveFileUsingBackupSlot].courseStars[courseIndex] &= ~starFlagsToRemove;
+        network_send_save_remove_flag(fileIndex, courseIndex, starFlagsToRemove, 0);
+    }
+
+    gSaveFileModified = TRUE;
+}
+
 s32 save_file_get_course_coin_score(s32 fileIndex, s32 courseIndex) {
     if (INVALID_FILE_INDEX(fileIndex)) { return 0; }
     if (INVALID_SRC_SLOT(gSaveFileUsingBackupSlot)) { return 0; }
     if (INVALID_COURSE_COIN_INDEX(courseIndex)) { return 0; }
-    return gSaveBuffer.files[fileIndex][gSaveFileUsingBackupSlot].courseCoinScores[courseIndex];
+    u8 coinScore = gSaveBuffer.files[fileIndex][gSaveFileUsingBackupSlot].courseCoinScores[courseIndex];
+
+    // sanity check - if we've collected 100 coin star... we have to have had at least 100
+    if (coinScore < 100) {
+        u8 stars = save_file_get_star_flags(fileIndex, courseIndex);
+        if ((stars & (1 << 6))) {
+            coinScore = 100;
+        }
+    }
+
+    return coinScore;
 }
 
 void save_file_set_course_coin_score(s32 fileIndex, s32 courseIndex, u8 coinScore) {
@@ -818,7 +861,7 @@ void check_if_should_set_warp_checkpoint(struct WarpNode *warpNode) {
  */
 s32 check_warp_checkpoint(struct WarpNode *warpNode) {
     s16 warpCheckpointActive = FALSE;
-    s16 currCourseNum = get_level_course_num((warpNode->destLevel & 0x7F) - 1);
+    s16 currCourseNum = get_level_course_num(warpNode->destLevel & 0x7F);
 
     // gSavedCourseNum is only used in this function.
     if (gWarpCheckpoint.courseNum != COURSE_NONE && gSavedCourseNum == currCourseNum

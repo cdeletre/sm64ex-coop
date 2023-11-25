@@ -226,7 +226,7 @@ void clear_areas(void) {
     gPlayerSpawnInfos[0].areaIndex = -1;
     gPlayerSpawnInfos[1].areaIndex = -1;
 
-    for (s32 i = 0; i < 8; i++) {
+    for (s32 i = 0; i < MAX_AREAS; i++) {
         gAreaData[i].index = i;
         gAreaData[i].flags = 0;
         gAreaData[i].terrainType = 0;
@@ -256,7 +256,7 @@ void clear_area_graph_nodes(void) {
         gWarpTransition.isActive = FALSE;
     }
 
-    for (s32 i = 0; i < 8; i++) {
+    for (s32 i = 0; i < MAX_AREAS; i++) {
         if (gAreaData[i].unk04 != NULL) {
             geo_call_global_function_nodes(&gAreaData[i].unk04->node, GEO_CONTEXT_AREA_INIT);
             gAreaData[i].unk04 = NULL;
@@ -442,11 +442,11 @@ void render_game(void) {
         gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, BORDER_HEIGHT, SCREEN_WIDTH,
                       SCREEN_HEIGHT - BORDER_HEIGHT);
 
-        if (!gDjuiDisabled && gDjuiRenderBehindHud) {
+        if (!gDjuiDisabled) {
             djui_reset_hud_params();
             create_dl_ortho_matrix();
             djui_gfx_displaylist_begin();
-            smlua_call_event_hooks_with_reset_func(HOOK_ON_HUD_RENDER, djui_reset_hud_params);
+            smlua_call_event_on_hud_render_behind(djui_reset_hud_params);
             djui_gfx_displaylist_end();
         }
         render_hud();

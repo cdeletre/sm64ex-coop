@@ -173,7 +173,7 @@ static void coopnet_populate_description(void) {
     char* buffer = sCoopNetDescription;
     int bufferLength = 256;
     // get version
-    char* version = get_version();
+    const char* version = get_version();
     int versionLength = strlen(version);
     snprintf(buffer, bufferLength, "%s", version);
     buffer += versionLength;
@@ -193,7 +193,7 @@ static void coopnet_populate_description(void) {
     bufferLength -= strlen(sep);
 
     // concat mod strings
-    str_seperator_concat(buffer, bufferLength, strings, gActiveMods.entryCount, "\n");
+    str_seperator_concat(buffer, bufferLength, strings, gActiveMods.entryCount, "\\#dcdcdc\\\n");
 }
 
 void ns_coopnet_update(void) {

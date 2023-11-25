@@ -59,10 +59,10 @@ static struct ObjectHitbox sCollectStarHitbox = {
 };
 
 void bhv_collect_star_init(void) {
-    s8 starId;
+    s16 starId;
     u8 currentLevelStarFlags;
 
-    starId = (o->oBehParams >> 24) & 0xFF;
+    starId = o->oBehParams >> 24;
     currentLevelStarFlags = save_file_get_star_flags(gCurrSaveFileNum - 1, gCurrCourseNum - 1);
     if (currentLevelStarFlags & (1 << starId)) {
         cur_obj_set_model(MODEL_TRANSPARENT_STAR);
@@ -106,6 +106,13 @@ void bhv_star_spawn_init(void) {
 }
 
 void bhv_star_spawn_loop(void) {
+    if (!sync_object_is_initialized(o->oSyncID)) {
+        sync_object_init(o, 4000);
+        sync_object_init_field(o, &o->oBehParams);
+        sync_object_init_field(o, &o->oAction);
+        sync_object_init_field(o, &o->oStarSpawnExtCutsceneFlags);
+    }
+
     switch (o->oAction) {
         case 0:
             o->oFaceAngleYaw += 0x1000;
@@ -148,17 +155,21 @@ void bhv_star_spawn_loop(void) {
 
         case 3:
             o->oFaceAngleYaw += 0x800;
+            cur_obj_become_tangible();
             if (o->oTimer == 20) {
                 gMarioStates[0].freeze = 0;
                 gObjCutsceneDone = TRUE;
                 clear_time_stop_flags(TIME_STOP_ENABLED | TIME_STOP_MARIO_AND_DOORS);
                 o->activeFlags &= ~ACTIVE_FLAG_INITIATED_TIME_STOP;
+                o->oStarSpawnExtCutsceneFlags = 0;
             }
 
             if (o->oInteractStatus & INT_STATUS_INTERACTED) {
                 mark_obj_for_deletion(o);
                 o->oInteractStatus = 0;
             }
+
+            network_send_object(o);
             break;
     }
     spawn_star_number();
@@ -321,7 +332,7 @@ void bhv_hidden_red_coin_star_loop(void) {
             break;
 
         case 1:
-            if (o->oTimer == 3) {
+            if (o->oTimer > 2) {
                 struct Object *obj = spawn_red_coin_cutscene_star(o->oPosX, o->oPosY, o->oPosZ);
                 if (obj != NULL) {
                     if (o->oHiddenStarLastInteractedObject == &gMarioStates[0]) {
@@ -331,7 +342,7 @@ void bhv_hidden_red_coin_star_loop(void) {
                     }
                     spawn_mist_particles();
                 }
-                network_send_object(o);
+                o->activeFlags = ACTIVE_FLAG_DEACTIVATED;
             }
             break;
     }

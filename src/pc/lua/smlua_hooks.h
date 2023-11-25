@@ -45,6 +45,8 @@ enum LuaHookedEventType {
     HOOK_JOINED_GAME,
     HOOK_ON_OBJECT_ANIM_UPDATE,
     HOOK_ON_DIALOG,
+    HOOK_ON_HUD_RENDER_BEHIND,
+    HOOK_MIRROR_MARIO_RENDER,
     HOOK_MAX,
 };
 
@@ -83,6 +85,8 @@ static const char* LuaHookedEventTypeName[] = {
     "HOOK_JOINED_GAME",
     "HOOK_ON_OBJECT_ANIM_UPDATE",
     "HOOK_ON_DIALOG",
+    "HOOK_ON_HUD_RENDER_BEHIND",
+    "HOOK_MIRROR_MARIO_RENDER",
     "HOOK_MAX"
 };
 
@@ -98,12 +102,13 @@ static const char* LuaActionHookTypeArgName[] = {
     "max (dummy)",
 };
 
-extern u32 gLuaMarioActionIndex;
+extern u32 gLuaMarioActionIndex[];
 
 int smlua_hook_custom_bhv(BehaviorScript *bhvScript, const char *bhvName);
 
 void smlua_call_event_hooks(enum LuaHookedEventType hookType);
-void smlua_call_event_hooks_with_reset_func(enum LuaHookedEventType hookType, void (*resetFunc)(void));
+void smlua_call_event_on_hud_render(void (*resetFunc)(void));
+void smlua_call_event_on_hud_render_behind(void (*resetFunc)(void));
 void smlua_call_event_hooks_bool_param(enum LuaHookedEventType hookType, bool value);
 void smlua_call_event_hooks_bool_param_ret_bool(enum LuaHookedEventType hookType, bool value, bool* returnValue);
 void smlua_call_event_hooks_mario_param(enum LuaHookedEventType hookType, struct MarioState* m);
@@ -126,6 +131,10 @@ void smlua_call_event_hooks_mario_action_params_ret_int(enum LuaHookedEventType 
 void smlua_call_event_hooks_mario_param_and_int_ret_bool(enum LuaHookedEventType hookType, struct MarioState* m, s32 param, bool* returnValue);
 bool smlua_call_event_hooks_mario_param_and_int_ret_int(enum LuaHookedEventType hookType, struct MarioState* m, s32 param, s32* returnValue);
 bool smlua_call_event_hooks_mario_param_and_int_and_int_ret_int(enum LuaHookedEventType hookType, struct MarioState* m, s32 param, u32 args, s32* returnValue);
+void smlua_call_event_hooks_graph_node_object_and_int_param(enum LuaHookedEventType hookType, struct GraphNodeObject* node, s32 param);
+
+int smlua_hook_exclamation_box(lua_State* L);
+struct Object* smlua_call_exclamation_box_hook(struct Object* obj, bool write);
 
 enum BehaviorId smlua_get_original_behavior_id(const BehaviorScript* behavior);
 const BehaviorScript* smlua_override_behavior(const BehaviorScript* behavior);
@@ -139,6 +148,11 @@ u32 smlua_get_action_interaction_type(struct MarioState* m);
 
 bool smlua_call_chat_command_hook(char* command);
 void smlua_display_chat_commands(void);
+char** smlua_get_chat_player_list(void);
+char** smlua_get_chat_maincommands_list(void);
+char** smlua_get_chat_subcommands_list(const char* maincommand);
+bool smlua_maincommand_exists(const char* maincommand);
+bool smlua_subcommand_exists(const char* maincommand, const char* subcommand);
 
 void smlua_clear_hooks(void);
 void smlua_bind_hooks(void);

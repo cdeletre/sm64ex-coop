@@ -25,6 +25,7 @@
 #include "pc/network/network.h"
 #include "engine/math_util.h"
 #include "game/print.h"
+#include "game/level_info.h"
 
 /**
  * @file star_select.c
@@ -96,7 +97,7 @@ void bhv_act_selector_star_type_loop(void) {
  * Renders the 100 coin star with an special star selector type.
  */
 void render_100_coin_star(u8 stars) {
-    if ((stars & (1 << 6)) && sStarSelectorModels[6]) {
+    if ((stars & (1 << 6))) {
         // If the 100 coin star has been collected, create a new star selector next to the coin score.
         sStarSelectorModels[6] = spawn_object_abs_with_rot(gCurrentObject, 0, MODEL_STAR,
                                                         bhvActSelectorStarType, 370, 24, -300, 0, 0, 0);
@@ -278,16 +279,8 @@ void print_act_selector_strings(void) {
 #endif
     unsigned char starNumbers[] = { TEXT_ZERO };
 
-#ifdef VERSION_EU
-    u8 **levelNameTbl;
-    u8 *currLevelName;
-    u8 **actNameTbl;
-#else
-    u8 **levelNameTbl = segmented_to_virtual(seg2_course_name_table);
-    u8 *currLevelName = segmented_to_virtual(levelNameTbl[gCurrCourseNum - 1]);
-    u8 **actNameTbl = segmented_to_virtual(seg2_act_name_table);
-#endif
-    u8 *selectedActName;
+    const u8 *currLevelName = get_level_name_sm64(gCurrCourseNum, gCurrLevelNum, gCurrAreaIndex, 1);
+    const u8 *selectedActName = get_star_name_sm64(gCurrCourseNum, sSelectedActIndex + 1, 1);
 #ifndef VERSION_EU
     s16 lvlNameX;
     s16 actNameX;
@@ -298,24 +291,6 @@ void print_act_selector_strings(void) {
 #endif
 
     create_dl_ortho_matrix();
-
-#ifdef VERSION_EU
-    switch (language) {
-        case LANGUAGE_ENGLISH:
-            actNameTbl = segmented_to_virtual(act_name_table_eu_en);
-            levelNameTbl = segmented_to_virtual(course_name_table_eu_en);
-            break;
-        case LANGUAGE_FRENCH:
-            actNameTbl = segmented_to_virtual(act_name_table_eu_fr);
-            levelNameTbl = segmented_to_virtual(course_name_table_eu_fr);
-            break;
-        case LANGUAGE_GERMAN:
-            actNameTbl = segmented_to_virtual(act_name_table_eu_de);
-            levelNameTbl = segmented_to_virtual(course_name_table_eu_de);
-            break;
-    }
-    currLevelName = segmented_to_virtual(levelNameTbl[gCurrCourseNum - 1]);
-#endif
 
     // Print the coin highscore.
     gSPDisplayList(gDisplayListHead++, dl_rgba16_text_begin);
@@ -336,9 +311,9 @@ void print_act_selector_strings(void) {
 
     if (currLevelName != NULL) {
 #ifdef VERSION_EU
-        print_generic_string(get_str_x_pos_from_center(160, currLevelName + 3, 10.0f), 33, currLevelName + 3);
+        print_generic_string(get_str_x_pos_from_center(160, (u8*) currLevelName + 3, 10.0f), 33, currLevelName + 3);
 #else
-        lvlNameX = get_str_x_pos_from_center(160, currLevelName + 3, 10.0f);
+        lvlNameX = get_str_x_pos_from_center(160, (u8*) currLevelName + 3, 10.0f);
         print_generic_string(lvlNameX, 33, currLevelName + 3);
 #endif
     }
@@ -355,12 +330,10 @@ void print_act_selector_strings(void) {
     gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, 255);
     // Print the name of the selected act.
     if (sVisibleStars != 0) {
-        selectedActName = segmented_to_virtual(actNameTbl[(gCurrCourseNum - 1) * 6 + sSelectedActIndex]);
-
 #ifdef VERSION_EU
-        print_menu_generic_string(get_str_x_pos_from_center(ACT_NAME_X, selectedActName, 8.0f), 81, selectedActName);
+        print_menu_generic_string(get_str_x_pos_from_center(ACT_NAME_X, (u8*) selectedActName, 8.0f), 81, selectedActName);
 #else
-        actNameX = get_str_x_pos_from_center(ACT_NAME_X, selectedActName, 8.0f);
+        actNameX = get_str_x_pos_from_center(ACT_NAME_X, (u8*) selectedActName, 8.0f);
         print_menu_generic_string(actNameX, 81, selectedActName);
 #endif
     }

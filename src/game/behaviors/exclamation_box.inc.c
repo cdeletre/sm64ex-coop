@@ -125,9 +125,16 @@ static s32 exclamation_replace_model(struct MarioState* m, s32 model) {
 void exclamation_box_spawn_contents(struct Struct802C0DF0 *a0, u8 a1) {
     struct MarioState* marioState = nearest_mario_state_to_object(o);
     struct Object* player = marioState ? marioState->marioObj : NULL;
-    struct Object *sp1C = NULL;
+    struct Object *spawnedObject = NULL;
 
     if (o->oExclamationBoxForce) {
+        return;
+    }
+
+    struct Object* luaSpawnedObject = NULL;
+    if ((luaSpawnedObject = smlua_call_exclamation_box_hook(o, true)) != NULL) {
+        luaSpawnedObject->parentObj = o; // Allows spawned stars to work like it was a normal exclamation box
+        (void *)smlua_call_exclamation_box_hook(luaSpawnedObject, false);
         return;
     }
 
@@ -135,13 +142,14 @@ void exclamation_box_spawn_contents(struct Struct802C0DF0 *a0, u8 a1) {
         if (a1 == a0->unk0) {
             s32 model = exclamation_replace_model(marioState, a0->model);
 
-            sp1C = spawn_object(o, model, a0->behavior);
-            if (sp1C != NULL) {
-                sp1C->oVelY = 20.0f;
-                sp1C->oForwardVel = 3.0f;
+            spawnedObject = spawn_object(o, model, a0->behavior);
+            (void *)smlua_call_exclamation_box_hook(spawnedObject, false);
+            if (spawnedObject != NULL) {
+                spawnedObject->oVelY = 20.0f;
+                spawnedObject->oForwardVel = 3.0f;
                 if (player) {
-                    sp1C->oMoveAngleYaw = player->oMoveAngleYaw;
-                    sp1C->globalPlayerIndex = player->globalPlayerIndex;
+                    spawnedObject->oMoveAngleYaw = player->oMoveAngleYaw;
+                    spawnedObject->globalPlayerIndex = player->globalPlayerIndex;
                 }
             }
             o->oBehParams |= a0->unk2 << 24;
@@ -150,12 +158,12 @@ void exclamation_box_spawn_contents(struct Struct802C0DF0 *a0, u8 a1) {
 
             // send non-star spawn events
             // stars cant be sent here to due jankiness in oBehParams
-            if (a0->behavior != smlua_override_behavior(bhvSpawnedStar) && sp1C != NULL) {
+            if (a0->behavior != smlua_override_behavior(bhvSpawnedStar) && spawnedObject != NULL) {
                 // hack: if any other sync objects get spawned here we have to check for them
                 if (a0->behavior == smlua_override_behavior(bhvKoopaShell)) {
-                    sync_object_set_id(sp1C);
+                    sync_object_set_id(spawnedObject);
                 }
-                struct Object* spawn_objects[] = { sp1C };
+                struct Object* spawn_objects[] = { spawnedObject };
                 u32 models[] = { model };
                 network_send_spawn_objects(spawn_objects, models, 1);
             }

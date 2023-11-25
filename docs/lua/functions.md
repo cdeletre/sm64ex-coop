@@ -39,6 +39,7 @@
    - [bhv_1up_loop](functions-2.md#bhv_1up_loop)
    - [bhv_1up_running_away_loop](functions-2.md#bhv_1up_running_away_loop)
    - [bhv_1up_sliding_loop](functions-2.md#bhv_1up_sliding_loop)
+   - [bhv_1up_trigger_init](functions-2.md#bhv_1up_trigger_init)
    - [bhv_1up_walking_loop](functions-2.md#bhv_1up_walking_loop)
    - [bhv_act_selector_init](functions-2.md#bhv_act_selector_init)
    - [bhv_act_selector_loop](functions-2.md#bhv_act_selector_loop)
@@ -701,6 +702,7 @@
 
 - characters.h
    - [get_character](functions-3.md#get_character)
+   - [get_character_anim](functions-3.md#get_character_anim)
    - [get_character_anim_offset](functions-3.md#get_character_anim_offset)
    - [play_character_sound](functions-3.md#play_character_sound)
    - [play_character_sound_if_no_flag](functions-3.md#play_character_sound_if_no_flag)
@@ -711,6 +713,12 @@
 
 - djui_chat_message.h
    - [djui_chat_message_create](functions-3.md#djui_chat_message_create)
+
+<br />
+
+- djui_console.h
+   - [djui_console_message_dequeue](functions-3.md#djui_console_message_dequeue)
+   - [djui_console_toggle](functions-3.md#djui_console_toggle)
 
 <br />
 
@@ -731,7 +739,6 @@
    - [djui_hud_set_color](functions-3.md#djui_hud_set_color)
    - [djui_hud_set_font](functions-3.md#djui_hud_set_font)
    - [djui_hud_set_mouse_locked](functions-3.md#djui_hud_set_mouse_locked)
-   - [djui_hud_set_render_behind_hud](functions-3.md#djui_hud_set_render_behind_hud)
    - [djui_hud_set_resolution](functions-3.md#djui_hud_set_resolution)
    - [djui_hud_set_rotation](functions-3.md#djui_hud_set_rotation)
    - [djui_hud_world_pos_to_screen_pos](functions-3.md#djui_hud_world_pos_to_screen_pos)
@@ -833,6 +840,8 @@
    - [get_painting_warp_node](functions-3.md#get_painting_warp_node)
    - [initiate_painting_warp](functions-3.md#initiate_painting_warp)
    - [level_trigger_warp](functions-3.md#level_trigger_warp)
+   - [lvl_set_current_level](functions-3.md#lvl_set_current_level)
+   - [warp_special](functions-3.md#warp_special)
 
 <br />
 
@@ -874,6 +883,8 @@
    - [resolve_and_return_wall_collisions_data](functions-3.md#resolve_and_return_wall_collisions_data)
    - [return_mario_anim_y_translation](functions-3.md#return_mario_anim_y_translation)
    - [set_anim_to_frame](functions-3.md#set_anim_to_frame)
+   - [set_character_anim_with_accel](functions-3.md#set_character_anim_with_accel)
+   - [set_character_animation](functions-3.md#set_character_animation)
    - [set_jump_from_landing](functions-3.md#set_jump_from_landing)
    - [set_jumping_action](functions-3.md#set_jumping_action)
    - [set_mario_action](functions-3.md#set_mario_action)
@@ -1096,30 +1107,35 @@
 
 <br />
 
-- mod_storage.h
+- mod_storage.c.h
+   - [mod_storage_clear](functions-3.md#mod_storage_clear)
    - [mod_storage_load](functions-3.md#mod_storage_load)
+   - [mod_storage_load_bool](functions-3.md#mod_storage_load_bool)
+   - [mod_storage_load_number](functions-3.md#mod_storage_load_number)
    - [mod_storage_save](functions-3.md#mod_storage_save)
+   - [mod_storage_save_bool](functions-3.md#mod_storage_save_bool)
+   - [mod_storage_save_number](functions-3.md#mod_storage_save_number)
 
 <br />
 
 - network_player.h
-   - [get_network_player_from_area](functions-3.md#get_network_player_from_area)
-   - [get_network_player_from_level](functions-3.md#get_network_player_from_level)
-   - [get_network_player_smallest_global](functions-3.md#get_network_player_smallest_global)
-   - [network_player_color_to_palette](functions-3.md#network_player_color_to_palette)
-   - [network_player_connected_count](functions-3.md#network_player_connected_count)
-   - [network_player_from_global_index](functions-3.md#network_player_from_global_index)
-   - [network_player_palette_to_color](functions-3.md#network_player_palette_to_color)
-   - [network_player_set_description](functions-3.md#network_player_set_description)
+   - [get_network_player_from_area](functions-4.md#get_network_player_from_area)
+   - [get_network_player_from_level](functions-4.md#get_network_player_from_level)
+   - [get_network_player_smallest_global](functions-4.md#get_network_player_smallest_global)
+   - [network_player_color_to_palette](functions-4.md#network_player_color_to_palette)
+   - [network_player_connected_count](functions-4.md#network_player_connected_count)
+   - [network_player_from_global_index](functions-4.md#network_player_from_global_index)
+   - [network_player_palette_to_color](functions-4.md#network_player_palette_to_color)
+   - [network_player_set_description](functions-4.md#network_player_set_description)
 
 <br />
 
 - network_utils.h
-   - [network_get_player_text_color_string](functions-3.md#network_get_player_text_color_string)
-   - [network_global_index_from_local](functions-3.md#network_global_index_from_local)
-   - [network_is_moderator](functions-3.md#network_is_moderator)
-   - [network_is_server](functions-3.md#network_is_server)
-   - [network_local_index_from_global](functions-3.md#network_local_index_from_global)
+   - [network_get_player_text_color_string](functions-4.md#network_get_player_text_color_string)
+   - [network_global_index_from_local](functions-4.md#network_global_index_from_local)
+   - [network_is_moderator](functions-4.md#network_is_moderator)
+   - [network_is_server](functions-4.md#network_is_server)
+   - [network_local_index_from_global](functions-4.md#network_local_index_from_global)
 
 <br />
 
@@ -1302,7 +1318,6 @@
    - [cur_obj_nearest_object_with_behavior](functions-4.md#cur_obj_nearest_object_with_behavior)
    - [cur_obj_outside_home_rectangle](functions-4.md#cur_obj_outside_home_rectangle)
    - [cur_obj_outside_home_square](functions-4.md#cur_obj_outside_home_square)
-   - [cur_obj_progress_direction_table](functions-4.md#cur_obj_progress_direction_table)
    - [cur_obj_push_mario_away](functions-4.md#cur_obj_push_mario_away)
    - [cur_obj_push_mario_away_from_cylinder](functions-4.md#cur_obj_push_mario_away_from_cylinder)
    - [cur_obj_reflect_move_angle_off_wall](functions-4.md#cur_obj_reflect_move_angle_off_wall)
@@ -1316,7 +1331,6 @@
    - [cur_obj_scale_over_time](functions-4.md#cur_obj_scale_over_time)
    - [cur_obj_set_behavior](functions-4.md#cur_obj_set_behavior)
    - [cur_obj_set_billboard_if_vanilla_cam](functions-4.md#cur_obj_set_billboard_if_vanilla_cam)
-   - [cur_obj_set_direction_table](functions-4.md#cur_obj_set_direction_table)
    - [cur_obj_set_face_angle_to_move_angle](functions-4.md#cur_obj_set_face_angle_to_move_angle)
    - [cur_obj_set_hitbox_and_die_if_attacked](functions-4.md#cur_obj_set_hitbox_and_die_if_attacked)
    - [cur_obj_set_hitbox_radius_and_height](functions-4.md#cur_obj_set_hitbox_radius_and_height)
@@ -1474,6 +1488,7 @@
    - [save_file_get_total_star_count](functions-4.md#save_file_get_total_star_count)
    - [save_file_is_cannon_unlocked](functions-4.md#save_file_is_cannon_unlocked)
    - [save_file_reload](functions-4.md#save_file_reload)
+   - [save_file_remove_star_flags](functions-4.md#save_file_remove_star_flags)
    - [save_file_set_course_coin_score](functions-4.md#save_file_set_course_coin_score)
    - [save_file_set_flags](functions-4.md#save_file_set_flags)
    - [save_file_set_star_flags](functions-4.md#save_file_set_star_flags)
@@ -1515,6 +1530,8 @@
 <br />
 
 - smlua_collision_utils.h
+   - [collision_find_ceil](functions-4.md#collision_find_ceil)
+   - [collision_find_floor](functions-4.md#collision_find_floor)
    - [collision_find_surface_on_ray](functions-4.md#collision_find_surface_on_ray)
    - [collision_get_temp_wall_collision_data](functions-4.md#collision_get_temp_wall_collision_data)
    - [get_water_surface_pseudo_floor](functions-4.md#get_water_surface_pseudo_floor)
@@ -1529,7 +1546,9 @@
 - smlua_level_utils.h
    - [level_is_vanilla_level](functions-4.md#level_is_vanilla_level)
    - [level_register](functions-4.md#level_register)
+   - [smlua_level_util_change_area](functions-4.md#smlua_level_util_change_area)
    - [smlua_level_util_get_info](functions-4.md#smlua_level_util_get_info)
+   - [smlua_level_util_get_info_from_course_num](functions-4.md#smlua_level_util_get_info_from_course_num)
    - [smlua_level_util_get_info_from_short_name](functions-4.md#smlua_level_util_get_info_from_short_name)
    - [warp_exit_level](functions-4.md#warp_exit_level)
    - [warp_restart_level](functions-4.md#warp_restart_level)
@@ -1555,6 +1574,7 @@
 - smlua_misc_utils.h
    - [add_scroll_target](functions-5.md#add_scroll_target)
    - [allocate_mario_action](functions-5.md#allocate_mario_action)
+   - [camera_allow_toxic_gas_camera](functions-5.md#camera_allow_toxic_gas_camera)
    - [camera_config_enable_analog_cam](functions-5.md#camera_config_enable_analog_cam)
    - [camera_config_enable_free_cam](functions-5.md#camera_config_enable_free_cam)
    - [camera_config_enable_mouse_look](functions-5.md#camera_config_enable_mouse_look)
@@ -1579,11 +1599,15 @@
    - [camera_is_frozen](functions-5.md#camera_is_frozen)
    - [camera_reset_overrides](functions-5.md#camera_reset_overrides)
    - [camera_romhack_allow_centering](functions-5.md#camera_romhack_allow_centering)
+   - [camera_romhack_allow_dpad_usage](functions-5.md#camera_romhack_allow_dpad_usage)
    - [camera_set_romhack_override](functions-5.md#camera_set_romhack_override)
    - [camera_unfreeze](functions-5.md#camera_unfreeze)
    - [course_is_main_course](functions-5.md#course_is_main_course)
    - [deref_s32_pointer](functions-5.md#deref_s32_pointer)
+   - [djui_is_popup_disabled](functions-5.md#djui_is_popup_disabled)
    - [djui_popup_create_global](functions-5.md#djui_popup_create_global)
+   - [djui_reset_popup_disabled_override](functions-5.md#djui_reset_popup_disabled_override)
+   - [djui_set_popup_disabled_override](functions-5.md#djui_set_popup_disabled_override)
    - [get_current_save_file_num](functions-5.md#get_current_save_file_num)
    - [get_dialog_box_state](functions-5.md#get_dialog_box_state)
    - [get_dialog_id](functions-5.md#get_dialog_id)
@@ -1614,6 +1638,7 @@
    - [hud_show](functions-5.md#hud_show)
    - [is_game_paused](functions-5.md#is_game_paused)
    - [is_transition_playing](functions-5.md#is_transition_playing)
+   - [log_to_console](functions-5.md#log_to_console)
    - [movtexqc_register](functions-5.md#movtexqc_register)
    - [play_transition](functions-5.md#play_transition)
    - [save_file_get_using_backup_slot](functions-5.md#save_file_get_using_backup_slot)
@@ -1678,12 +1703,19 @@
 <br />
 
 - smlua_text_utils.h
+   - [smlua_text_utils_act_name_get](functions-5.md#smlua_text_utils_act_name_get)
+   - [smlua_text_utils_act_name_mod_index](functions-5.md#smlua_text_utils_act_name_mod_index)
+   - [smlua_text_utils_act_name_replace](functions-5.md#smlua_text_utils_act_name_replace)
+   - [smlua_text_utils_act_name_reset](functions-5.md#smlua_text_utils_act_name_reset)
    - [smlua_text_utils_castle_secret_stars_replace](functions-5.md#smlua_text_utils_castle_secret_stars_replace)
    - [smlua_text_utils_course_acts_replace](functions-5.md#smlua_text_utils_course_acts_replace)
+   - [smlua_text_utils_course_name_get](functions-5.md#smlua_text_utils_course_name_get)
+   - [smlua_text_utils_course_name_mod_index](functions-5.md#smlua_text_utils_course_name_mod_index)
+   - [smlua_text_utils_course_name_replace](functions-5.md#smlua_text_utils_course_name_replace)
+   - [smlua_text_utils_course_name_reset](functions-5.md#smlua_text_utils_course_name_reset)
    - [smlua_text_utils_dialog_replace](functions-5.md#smlua_text_utils_dialog_replace)
    - [smlua_text_utils_extra_text_replace](functions-5.md#smlua_text_utils_extra_text_replace)
    - [smlua_text_utils_get_language](functions-5.md#smlua_text_utils_get_language)
-   - [smlua_text_utils_reset_all](functions-5.md#smlua_text_utils_reset_all)
    - [smlua_text_utils_secret_star_replace](functions-5.md#smlua_text_utils_secret_star_replace)
 
 <br />

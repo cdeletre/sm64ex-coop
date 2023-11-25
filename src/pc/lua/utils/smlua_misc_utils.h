@@ -34,6 +34,10 @@ enum HudDisplayFlags {
 };
 
 void djui_popup_create_global(const char* message, int lines);
+void log_to_console(const char* message);
+bool djui_is_popup_disabled(void);
+void djui_set_popup_disabled_override(bool value);
+void djui_reset_popup_disabled_override(void);
 void hud_hide(void);
 void hud_show(void);
 bool hud_is_hidden(void);
@@ -48,6 +52,8 @@ void camera_unfreeze(void);
 bool camera_is_frozen(void);
 void camera_set_romhack_override(enum RomhackCameraOverride rco);
 void camera_romhack_allow_centering(u8 allow);
+void camera_allow_toxic_gas_camera(u8 allow);
+void camera_romhack_allow_dpad_usage(u8 allow);
 
 bool camera_config_is_free_cam_enabled(void);
 bool camera_config_is_analog_cam_enabled(void);
@@ -128,6 +134,6 @@ u32 get_time(void);
 u16 get_envfx(void);
 void set_override_envfx(s32 envfx);
 
-char* get_os_name(void);
+const char* get_os_name(void);
 
 #endif

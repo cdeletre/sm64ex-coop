@@ -243,6 +243,7 @@ struct Object
     /*?????*/ struct Object* usingObj;
     /*?????*/ u8 hookRender;
     /*?????*/ u8 setHome;
+    /*?????*/ u8 allowRemoteInteractions;
     /*?????*/ u8 ctx;
 };
 
@@ -306,7 +307,13 @@ struct MarioBodyState
     /*????*/ Vec3f handFootPos[4];
     /*????*/ u32 updateTorsoTime;
     /*????*/ Vec3f headPos;
-    //u8 padding[4];
+    /*????*/ u8 shadeR; // Shadow Red Value
+    /*????*/ u8 shadeG; // Shadow Green Value
+    /*????*/ u8 shadeB; // Shadow Blue Value
+    /*????*/ u8 lightR; // Shadow Red Value
+    /*????*/ u8 lightG; // Shadow Green Value
+    /*????*/ u8 lightB; // Shadow Blue Value
+    // u8 padding[4];
 };
 
 struct OffsetSizePair
@@ -414,6 +421,7 @@ struct MarioState
     /*????*/ u8 visibleToEnemies;
     /*????*/ u32 cap;
     /*????*/ u8 bounceSquishTimer;
+    /*????*/ u8 skipWarpInteractionsTimer;
 };
 
 struct TextureInfo

@@ -14,11 +14,16 @@
 #define SCANCODE_RIGHT     333
 #define SCANCODE_PAGE_DOWN 337
 #define SCANCODE_PAGE_UP   329
+#define SCANCODE_POS1      327
+#define SCANCODE_END       335
 
 
 #define SCANCODE_ENTER  28
 #define SCANCODE_SPACE  57
 #define SCANCODE_ESCAPE 1
+#define SCANCODE_TAB    15
+#define SCANCODE_LSHIFT 42
+#define SCANCODE_RSHIFT 54
 
 struct DjuiInteractable {
     bool enabled;
@@ -47,6 +52,8 @@ extern struct DjuiBase* gDjuiCursorDownOn;
 extern struct DjuiBase* gInteractableFocus;
 extern struct DjuiBase* gInteractableBinding;
 extern struct DjuiBase* gInteractableMouseDown;
+extern const u8 sPlayerListSize;
+extern u8 sPageIndex;
 
 bool djui_interactable_is_binding(void);
 void djui_interactable_set_binding(struct DjuiBase* base);

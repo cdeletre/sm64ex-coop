@@ -31,7 +31,6 @@
 #include "pc/network/network.h"
 #include "pc/network/lag_compensation.h"
 #include "pc/lua/smlua_hooks.h"
-#include "pc/cheats.h"
 
 u8 sDelayInvincTimer;
 s16 gInteractionInvulnerable;
@@ -119,6 +118,7 @@ static u32 sBackwardKnockbackActions[][3] = {
 };
 
 static u8 sDisplayingDoorText = FALSE;
+u8 sCanInteractDoor = TRUE;
 static u8 sJustTeleported = FALSE;
 u8 gPssSlideStarted = FALSE;
 extern u8 gLastCollectedStarOrKey;
@@ -922,12 +922,7 @@ u32 interact_star_or_key(struct MarioState *m, UNUSED u32 interactType, struct O
 
     u8 stayInLevelCommon = !(gCurrLevelNum == LEVEL_BOWSER_1 || gCurrLevelNum == LEVEL_BOWSER_2 || gCurrLevelNum == LEVEL_BOWSER_3);
     if (stayInLevelCommon && gServerSettings.stayInLevelAfterStar) { noExit = TRUE; }
-
-    if (o->behavior == bhvBowserKey) {
-        gLastCollectedStarOrKey = 1;
-    } else {
-        gLastCollectedStarOrKey = 0;
-    }
+    gLastCollectedStarOrKey = o->behavior == bhvBowserKey;
 
     if (m->health >= 0x100) {
 
@@ -980,7 +975,7 @@ u32 interact_star_or_key(struct MarioState *m, UNUSED u32 interactType, struct O
         m->interactObj = o;
         m->usedObj = o;
 
-        starIndex = (o->oBehParams >> 24) & 0x1F;
+        starIndex = o->oBehParams >> 24;
 
         if (m == &gMarioStates[0]) {
             // sync the star collection
@@ -1042,6 +1037,10 @@ u32 interact_warp(struct MarioState *m, UNUSED u32 interactType, struct Object *
     if (!m || !o) { return FALSE; }
     u32 action;
 
+    if (m->skipWarpInteractionsTimer > 0) {
+        return FALSE;
+    }
+
     if (m != &gMarioStates[0]) {
         // don't do for remote players
         return FALSE;
@@ -1088,16 +1087,7 @@ u32 interact_warp(struct MarioState *m, UNUSED u32 interactType, struct Object *
 u32 display_door_dialog(struct MarioState *m, u32 actionArg) {
     if (!m) { return FALSE; }
     if (m != &gMarioStates[0]) { return FALSE; }
-    // ugly hack: save the last place we opened a dialog to prevent dialog spam
-    static f32 lastDialogPosition[3] = { 0 };
-    f32 dx = m->pos[0] - lastDialogPosition[0]; dx *= dx;
-    f32 dy = m->pos[1] - lastDialogPosition[1]; dy *= dy;
-    f32 dz = m->pos[2] - lastDialogPosition[2]; dz *= dz;
-    f32 dist = sqrt(dx + dy + dz);
-    if (dist < 300) { return FALSE; }
-    memcpy(lastDialogPosition, &m->pos[0], sizeof(f32) * 3);
-
-    return set_mario_action(m, ACT_READING_AUTOMATIC_DIALOG, actionArg);
+    return sCanInteractDoor ? set_mario_action(m, ACT_READING_AUTOMATIC_DIALOG, actionArg) : FALSE;
 }
 
 u8 prevent_interact_door(struct MarioState* m, struct Object* o) {
@@ -1131,6 +1121,7 @@ u32 interact_warp_door(struct MarioState *m, UNUSED u32 interactType, struct Obj
             if (!(saveFlags & SAVE_FLAG_HAVE_KEY_2)) {
                 if (display_door_dialog(m, (saveFlags & SAVE_FLAG_HAVE_KEY_1) ? gBehaviorValues.dialogs.KeyDoor1HaveDialog : gBehaviorValues.dialogs.KeyDoor1DontHaveDialog)) {
                     sDisplayingDoorText = TRUE;
+                    sCanInteractDoor = FALSE;
                 }
                 return FALSE;
             }
@@ -1142,6 +1133,7 @@ u32 interact_warp_door(struct MarioState *m, UNUSED u32 interactType, struct Obj
             if (!(saveFlags & SAVE_FLAG_HAVE_KEY_1)) {
                 if (display_door_dialog(m, (saveFlags & SAVE_FLAG_HAVE_KEY_2) ? gBehaviorValues.dialogs.KeyDoor2HaveDialog : gBehaviorValues.dialogs.KeyDoor2DontHaveDialog)) {
                     sDisplayingDoorText = TRUE;
+                    sCanInteractDoor = FALSE;
                 }
                 return FALSE;
             }
@@ -1279,6 +1271,7 @@ u32 interact_door(struct MarioState *m, UNUSED u32 interactType, struct Object *
                     set_mario_action(m, ACT_ENTERING_STAR_DOOR, should_push_or_pull_door(m, o));
                 }
                 sDisplayingDoorText = TRUE;
+                sCanInteractDoor = FALSE;
                 return TRUE;
             }
         }
@@ -2300,16 +2293,22 @@ void mario_process_interactions(struct MarioState *m) {
     sDelayInvincTimer = FALSE;
     gInteractionInvulnerable = (m->action & ACT_FLAG_INVULNERABLE) || m->invincTimer != 0;
 
+    if (m->skipWarpInteractionsTimer) {
+        m->skipWarpInteractionsTimer--;
+    }
+
     if (!(m->action & ACT_FLAG_INTANGIBLE) && m->collidedObjInteractTypes != 0 && is_player_active(m)) {
         s32 i;
         for (i = 0; i < 32; i++) {
             u32 interactType = sInteractionHandlers[i].interactType;
-            if (m->playerIndex != 0 && interactType != (u32)INTERACT_PLAYER && interactType != (u32)INTERACT_POLE) {
+            if (m->collidedObjInteractTypes & interactType) {
+                struct Object *object = mario_get_collided_object(m, interactType);
+                bool allowRemoteInteractions = object && object->allowRemoteInteractions;
+
+                if (m->playerIndex != 0 && interactType != (u32)INTERACT_PLAYER && interactType != (u32)INTERACT_POLE && !allowRemoteInteractions) {
                 // skip interactions for remote
                 continue;
             }
-            if (m->collidedObjInteractTypes & interactType) {
-                struct Object *object = mario_get_collided_object(m, interactType);
 
                 m->collidedObjInteractTypes &= ~interactType;
 
@@ -2349,6 +2348,7 @@ void mario_process_interactions(struct MarioState *m) {
 
     if (!(m->marioObj->collidedObjInteractTypes & (INTERACT_WARP_DOOR | INTERACT_DOOR))) {
         sDisplayingDoorText = FALSE;
+        sCanInteractDoor = TRUE;
     }
     if (!(m->marioObj->collidedObjInteractTypes & INTERACT_WARP)) {
         if (m == &gMarioStates[0]) {
@@ -2372,7 +2372,9 @@ void check_death_barrier(struct MarioState *m) {
                 case COURSE_TOTWC:    // (21) Tower of the Wing Cap
                 case COURSE_VCUTM:    // (22) Vanish Cap Under the Moat
                 case COURSE_WMOTR:    // (23) Winged Mario over the Rainbow
+                    if (!gLevelValues.bubbleOnDeathBarrierInCapStages){
                     break;
+                    }
                 default:
                     mario_set_bubbled(m);
                     return;
@@ -2395,7 +2397,7 @@ void check_lava_boost(struct MarioState *m) {
     if (!m) { return; }
     bool allow = true;
     smlua_call_event_hooks_mario_param_and_int_ret_bool(HOOK_ALLOW_HAZARD_SURFACE, m, HAZARD_TYPE_LAVA_FLOOR, &allow);
-    if (m->action == ACT_BUBBLED || (gServerSettings.enableCheats && gCheats.godMode) || (!allow)) { return; }
+    if (m->action == ACT_BUBBLED || (!allow)) { return; }
     if (!(m->action & ACT_FLAG_RIDING_SHELL) && m->pos[1] < m->floorHeight + 10.0f) {
         if (!(m->flags & MARIO_METAL_CAP)) {
             m->hurtCounter += (m->flags & MARIO_CAP_ON_HEAD) ? 12 : 18;

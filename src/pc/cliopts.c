@@ -1,6 +1,5 @@
 #include "cliopts.h"
 #include "configfile.h"
-#include "cheats.h"
 #include "pc_main.h"
 #include "platform.h"
 #include "macros.h"
@@ -15,7 +14,6 @@ struct PCCLIOptions gCLIOpts;
 
 static void print_help(void) {
     printf("\nsm64ex-coop\n");
-    printf("%-20s\tEnables the cheat menu.\n", "--cheats");
     printf("%-20s\tSaves the configuration file as CONFIGNAME.\n", "--configfile CONFIGNAME");
     printf("%-20s\tSets additional data directory name (only 'res' is used by default).\n", "--gamedir DIRNAME");
     printf("%-20s\tOverrides the default save/config path ('!' expands to executable path).\n", "--savepath SAVEPATH");
@@ -25,6 +23,7 @@ static void print_help(void) {
     printf("%-20s\tStarts the game and creates a new server.\n", "--server PORT");
     printf("%-20s\tStarts the game and joins an existing server.\n", "--client IP PORT");
     printf("%-20s\tStarts the game using a poolsize of your choice.\n", "--poolsize POOLSIZE");
+    printf("%-20s\tStarts the game with a specific playername.\n", "--playername PLAYERNAME");
 }
 
 static inline int arg_string(const char *name, const char *value, char *target, int maxLength) {
@@ -43,7 +42,8 @@ static inline int arg_uint(UNUSED const char *name, const char *value, unsigned 
     return 1;
 }
 
-void parse_cli_opts(int argc, char* argv[]) {
+bool parse_cli_opts(int argc, char* argv[]) {
+
     // Initialize options with false values.
     memset(&gCLIOpts, 0, sizeof(gCLIOpts));
 
@@ -70,10 +70,7 @@ void parse_cli_opts(int argc, char* argv[]) {
                 gCLIOpts.NetworkPort = 7777;
             }
 
-        } else if (strcmp(argv[i], "--cheats") == 0) // Enable cheats menu
-            gServerSettings.enableCheats = true;
-
-        else if (strcmp(argv[i], "--poolsize") == 0) // Main pool size
+        } else if (strcmp(argv[i], "--poolsize") == 0) // Main pool size
             arg_uint("--poolsize", argv[++i], &gCLIOpts.PoolSize);
 
         else if (strcmp(argv[i], "--configfile") == 0 && (i + 1) < argc)
@@ -85,10 +82,15 @@ void parse_cli_opts(int argc, char* argv[]) {
         else if (strcmp(argv[i], "--savepath") == 0 && (i + 1) < argc)
             arg_string("--savepath", argv[++i], gCLIOpts.SavePath, SYS_MAX_PATH);
 
+        else if (strcmp(argv[i], "--playername") == 0 && (i + 1) < argc)
+            arg_string("--playername", argv[++i], gCLIOpts.PlayerName, MAX_PLAYER_STRING);
+
         // Print help
         else if (strcmp(argv[i], "--help") == 0) {
             print_help();
-            game_exit();
+            return false;
         }
     }
+
+    return true;
 }
