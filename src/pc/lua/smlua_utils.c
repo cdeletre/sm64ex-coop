@@ -441,21 +441,12 @@ void smlua_push_object(lua_State* L, u16 lot, void* p) {
     }
 
     // add to allowlist
-// #ifdef __ANDROID__
-    smlua_cobject_allowlist_add(lot, (u64)(intptr_t)p);
-// #else // yep this destroys 32-bit ARM support for bionic and musl at the very least
-//     u64 pointer = (uintptr_t) p;
-//     smlua_cobject_allowlist_add(lot, pointer);
-// #endif
+    smlua_cobject_allowlist_add(lot, (u64)(intptr_t) p);
 
     // get a cobject from a function
     lua_getglobal(L, "_NewCObject");  // Get the function by its global name
     lua_pushinteger(L, lot);
-// #ifdef __ANDROID__
-    lua_pushinteger(L, (u64)(intptr_t)p);
-// #else
-//     lua_pushinteger(L, pointer);
-// #endif
+    lua_pushinteger(L, (u64)(intptr_t) p);
 
     if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
         LOG_ERROR("Error calling Lua function: %s\n", lua_tostring(L, -1));
@@ -468,21 +459,12 @@ void smlua_push_pointer(lua_State* L, u16 lvt, void* p) {
         return;
     }
 
-// #ifdef __ANDROID__
-    smlua_cpointer_allowlist_add(lvt, (u64)(intptr_t)p);
-// #else
-//     u64 pointer = (uintptr_t) p;
-//     smlua_cpointer_allowlist_add(lvt, pointer);
-// #endif
+    smlua_cpointer_allowlist_add(lvt, (u64)(intptr_t) p);
 
     // get a cpointer from a function
     lua_getglobal(L, "_NewCPointer");  // Get the function by its global name
     lua_pushinteger(L, lvt);
-// #ifdef __ANDROID__
-    lua_pushinteger(L, (u64)(intptr_t)p);
-// #else
-//     lua_pushinteger(L, pointer);
-// #endif
+    lua_pushinteger(L, (u64)(intptr_t) p);
     if (lua_pcall(L, 2, 1, 0) != LUA_OK) {
         LOG_ERROR("Error calling Lua function: %s\n", lua_tostring(L, -1));
     }

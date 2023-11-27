@@ -388,7 +388,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Crash in SDL_aaudio.c on Android if pthread_create() is used here
-#ifndef TARGET_ANDROID
+#if !defined(TARGET_ANDROID) && !defined(WAPI_DXGI)
     // Start the thread for setting up the game
     if (pthread_mutex_init(&gLoadingThreadMutex, NULL) == 0 && pthread_create(&gLoadingThreadId, NULL, main_game_init, (void*) 1) == 0) {
         gIsThreaded = true;
@@ -397,7 +397,7 @@ int main(int argc, char *argv[]) {
     } else {
 #endif
         main_game_init(NULL); // Failsafe incase threading doesn't work
-#ifndef TARGET_ANDROID
+#if !defined(TARGET_ANDROID) && !defined(WAPI_DXGI)
     }
     pthread_mutex_destroy(&gLoadingThreadMutex);
 #endif

@@ -199,9 +199,6 @@ def translate_type_to_lua(ptype):
     if ptype == 'float':
         return '`number`', None
 
-    if ptype == 'double':
-        return '`number`', None
-
     if ptype == 'bool':
         return '`boolean`', None
 
