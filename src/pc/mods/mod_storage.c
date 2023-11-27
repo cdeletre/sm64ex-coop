@@ -7,6 +7,9 @@
 #include "pc/lua/smlua.h"
 #include "pc/mods/mods_utils.h"
 #include "pc/debuglog.h"
+#ifdef __ANDROID__
+#include "pc/utils/misc.h"
+#endif
 
 void strdelete(char string[], char substr[]) {
     // i is used to loop through the string
