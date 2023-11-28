@@ -239,6 +239,8 @@ void produce_one_frame(void) {
 
     CTX_EXTENT(CTX_SMLUA, smlua_update);
 
+    thread6_rumble_loop(NULL);
+
     CTX_EXTENT(CTX_AUDIO, buffer_audio);
 
     CTX_EXTENT(CTX_RENDER, produce_interpolation_frames_and_delay);
