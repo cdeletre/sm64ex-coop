@@ -342,13 +342,6 @@ void* main_game_init(UNUSED void* arg) {
 #endif
     }
 
-#if defined(AAPI_SDL1) || defined(AAPI_SDL2)
-    if (audio_api == NULL && audio_sdl.init()) { audio_api = &audio_sdl; }
-#endif
-    if (audio_api == NULL) { audio_api = &audio_null; }
-
-    audio_init();
-    sound_init();
 #ifdef HAVE_BASS
     bassh_init();
 #endif
@@ -389,8 +382,7 @@ int main(int argc, char *argv[]) {
 #endif
     }
 
-    // Crash in SDL_aaudio.c on Android if pthread_create() is used here
-#if !defined(TARGET_ANDROID) && !defined(WAPI_DXGI)
+#if !defined(WAPI_DXGI)
     // Start the thread for setting up the game
     if (pthread_mutex_init(&gLoadingThreadMutex, NULL) == 0 && pthread_create(&gLoadingThreadId, NULL, main_game_init, (void*) 1) == 0) {
         gIsThreaded = true;
@@ -399,10 +391,18 @@ int main(int argc, char *argv[]) {
     } else {
 #endif
         main_game_init(NULL); // Failsafe incase threading doesn't work
-#if !defined(TARGET_ANDROID) && !defined(WAPI_DXGI)
+#if !defined(WAPI_DXGI)
     }
     pthread_mutex_destroy(&gLoadingThreadMutex);
 #endif
+
+#if defined(AAPI_SDL1) || defined(AAPI_SDL2)
+    if (audio_api == NULL && audio_sdl.init()) { audio_api = &audio_sdl; }
+#endif
+    if (audio_api == NULL) { audio_api = &audio_null; }
+
+    audio_init();
+    sound_init();
 
     // initialize sm64 data and controllers
     thread5_game_loop(NULL);
