@@ -12,6 +12,7 @@ Run `./extract_assets.py --clean && make clean` or `make distclean` to remove RO
 > Android 14, which released on October 4, 2023, **partially breaks sm64ex-coop builder Termux v0.1.2**, but not entirely. My advice for using sm64ex-coop builder Termux v0.1.2 on Android 14 is to **type `apt-mark hold bash && yes | pkg upgrade -y` and press Enter, then wait for the command to complete, then touch "Exit (touch to reset)" in your notifications, then open sm64ex-coop builder Termux again**. This bug is a manifestation of **[upstream Termux bug #3647](https://github.com/termux/termux-app/issues/3647)** in sm64ex-coop builder Termux, and this workaround is my recommended implementation of [the solution for upstream](https://github.com/termux/termux-app/issues/3647#issuecomment-1765307488) backported to sm64ex-coop builder Termux v0.1.2. This behavior will eventually be fixed in a future release of sm64ex-coop builder Termux once I decide the current release is too broken to continue distributing sm64ex-coop for Android.
 
 * The easiest way is to download [sm64ex-coop builder Termux](https://github.com/robertkirkman/termux-app/releases/download/v0.1.2/termux-app_v0.1.2+apt-android-7-github-debug_universal.apk)
+* This fork of sm64ex-coop builder Termux that adds options for compiling other sm64ex forks also works! [SM64 Builder Termux](https://github.com/izzy2fancy/termux-app/releases)
 
 [Click here to build the `.apk` from a non-Android device](https://github.com/robertkirkman/sm64ex-coop-android-base). 
 
