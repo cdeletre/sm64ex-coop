@@ -2,6 +2,7 @@
 #include "djui_panel.h"
 #include "pc/controller/controller_mouse.h"
 #include "pc/controller/controller_sdl.h"
+#include "pc/controller/controller_touchscreen.h"
 #include "pc/gfx/gfx_window_manager_api.h"
 #include "pc/pc_main.h"
 
@@ -73,6 +74,13 @@ static void djui_cursor_move_check(s8 xDir, s8 yDir, struct DjuiBase** pick, str
         y2 = base->elem.y + base->elem.height;
         bool xWithin = (gCursorX >= x1 && gCursorX <= x2) || sCursorMouseControlled;
         bool yWithin = (gCursorY >= y1 && gCursorY <= y2) || sCursorMouseControlled;
+
+#ifdef TOUCH_CONTROLS
+        if (gGamepadActive) {
+            xWithin = true;
+            yWithin = true;
+        }
+#endif
 
         bool valid = false;
         if (yDir > 0 && gCursorY < y1 && xWithin) { valid = true; }
