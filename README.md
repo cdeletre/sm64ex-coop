@@ -13,6 +13,10 @@ Run `./extract_assets.py --clean && make clean` or `make distclean` to remove RO
 
 * The easiest way is to download [sm64ex-coop builder Termux](https://github.com/robertkirkman/termux-app/releases/download/v0.1.2/termux-app_v0.1.2+apt-android-7-github-debug_universal.apk)
 * This fork of sm64ex-coop builder Termux that adds options for compiling other sm64ex forks also works! [SM64 Builder Termux](https://github.com/izzy2fancy/termux-app/releases)
+* If you already have Termux, you can try the auto builder without removing your current version of Termux by copying and pasting this command into it, then pushing enter:
+```bash
+bash <(curl -s https://raw.githubusercontent.com/robertkirkman/termux-packages/master/packages/bash/bin-build-sm64ex-coop.sh)
+```
 
 [Click here to build the `.apk` from a non-Android device](https://github.com/robertkirkman/sm64ex-coop-android-base). 
 
