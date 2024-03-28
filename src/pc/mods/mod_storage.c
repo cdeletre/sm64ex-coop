@@ -238,9 +238,7 @@ const char *mod_storage_load(const char *key) {
     if (strstr(value, "(null)") != NULL) { return NULL; }
 
 #ifdef __ANDROID__
-    if (!cached_value) {
-        cache_key(key, value);
-    }
+    cache_key(key, value);
 #endif
 
     return value;
