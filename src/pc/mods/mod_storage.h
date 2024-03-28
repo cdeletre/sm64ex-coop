@@ -10,5 +10,8 @@
 
 bool mod_storage_save(const char *key, const char *value);
 const char *mod_storage_load(const char *key);
+#ifdef __ANDROID__
+void key_cache_init(void);
+#endif
 
 #endif

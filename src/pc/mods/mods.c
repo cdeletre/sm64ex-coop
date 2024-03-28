@@ -226,6 +226,10 @@ void mods_refresh_local(void) {
     // clear mods
     mods_clear(&gLocalMods);
 
+#ifdef __ANDROID__
+    key_cache_init();
+#endif
+
     // load mods
     if (hasUserPath) { mods_load(&gLocalMods, userModPath, true); }
 

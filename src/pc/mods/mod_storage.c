@@ -11,8 +11,6 @@
 #include "pc/utils/misc.h"
 
 #define MAX_CACHED_KEYS 100
-
-static bool keyCacheInitialized = false;
 typedef struct CachedKey {
     char key[MAX_KEY_VALUE_LENGTH],
          value[MAX_KEY_VALUE_LENGTH];
@@ -25,7 +23,6 @@ void key_cache_init(void) {
         snprintf(sCachedKeys[i].key, MAX_KEY_VALUE_LENGTH, "%s", "");
         snprintf(sCachedKeys[i].value, MAX_KEY_VALUE_LENGTH, "%s", "");
     }
-    keyCacheInitialized = true;
 }
 
 char *key_cached(char key[], char value[]) {
@@ -140,11 +137,7 @@ bool mod_storage_save(const char *key, const char *value) {
     }
 
 #ifdef __ANDROID__
-    if (!keyCacheInitialized) {
-        key_cache_init();
-        cache_key(key, value);
-    }
-    else if (!key_cached(key, value)) {
+    if (!key_cached(key, value)) {
         cache_key(key, value);
     }
 #endif
@@ -214,14 +207,9 @@ const char *mod_storage_load(const char *key) {
 
 #ifdef __ANDROID__
     char *cached_value = NULL;
-    if (!keyCacheInitialized) {
-        key_cache_init();
-    }
-    else {
-        cached_value = key_cached(key, NULL);
-        if (cached_value) {
-            return cached_value;
-        }
+    cached_value = key_cached(key, NULL);
+    if (cached_value) {
+        return cached_value;
     }
 #endif
 
