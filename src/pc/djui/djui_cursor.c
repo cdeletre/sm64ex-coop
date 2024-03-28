@@ -76,10 +76,7 @@ static void djui_cursor_move_check(s8 xDir, s8 yDir, struct DjuiBase** pick, str
         bool yWithin = (gCursorY >= y1 && gCursorY <= y2) || sCursorMouseControlled;
 
 #ifdef TOUCH_CONTROLS
-        if (gGamepadActive) {
-            xWithin = true;
-            yWithin = true;
-        }
+        xWithin = yWithin = true;
 #endif
 
         bool valid = false;

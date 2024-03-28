@@ -9,6 +9,46 @@
 #include "pc/debuglog.h"
 #ifdef __ANDROID__
 #include "pc/utils/misc.h"
+
+#define MAX_CACHED_KEYS 100
+
+static bool keyCacheInitialized = false;
+typedef struct CachedKey {
+    char key[MAX_KEY_VALUE_LENGTH],
+         value[MAX_KEY_VALUE_LENGTH];
+} CachedKey;
+
+static CachedKey sCachedKeys[MAX_CACHED_KEYS];
+
+void key_cache_init(void) {
+    for (u32 i = 0; i < MAX_CACHED_KEYS; i++) {
+        snprintf(sCachedKeys[i].key, MAX_KEY_VALUE_LENGTH, "%s", "");
+        snprintf(sCachedKeys[i].value, MAX_KEY_VALUE_LENGTH, "%s", "");
+    }
+    keyCacheInitialized = true;
+}
+
+char *key_cached(char key[], char value[]) {
+    for (u32 i = 0; i < MAX_CACHED_KEYS; i++) {
+        if (strncmp(key, sCachedKeys[i].key, MAX_KEY_VALUE_LENGTH) == 0) {
+            if (value) {
+                snprintf(sCachedKeys[i].value, MAX_KEY_VALUE_LENGTH, "%s", value);
+            }
+            return sCachedKeys[i].value;
+        }
+    }
+    return NULL;
+}
+
+void cache_key(char key[], char value[]) {
+    for (u32 i = 0; i < MAX_CACHED_KEYS; i++) {
+        if (strncmp("", sCachedKeys[i].key, MAX_KEY_VALUE_LENGTH) == 0) {
+            snprintf(sCachedKeys[i].key, MAX_KEY_VALUE_LENGTH, "%s", key);
+            snprintf(sCachedKeys[i].value, MAX_KEY_VALUE_LENGTH, "%s", value);
+            return;
+        }
+    }
+}
 #endif
 
 void strdelete(char string[], char substr[]) {
@@ -99,6 +139,16 @@ bool mod_storage_save(const char *key, const char *value) {
         return false;
     }
 
+#ifdef __ANDROID__
+    if (!keyCacheInitialized) {
+        key_cache_init();
+        cache_key(key, value);
+    }
+    else if (!key_cached(key, value)) {
+        cache_key(key, value);
+    }
+#endif
+
     FILE *file;
     Config *cfg = NULL;
     char *filename;
@@ -162,6 +212,19 @@ const char *mod_storage_load(const char *key) {
         return NULL;
     }
 
+#ifdef __ANDROID__
+    char *cached_value = NULL;
+    if (!keyCacheInitialized) {
+        key_cache_init();
+    }
+    else {
+        cached_value = key_cached(key, NULL);
+        if (cached_value) {
+            return cached_value;
+        }
+    }
+#endif
+
     char *filename;
     filename = (char *)malloc((SYS_MAX_PATH - 1) * sizeof(char));
     mod_storage_get_filename(filename);
@@ -185,6 +248,12 @@ const char *mod_storage_load(const char *key) {
     free(filename);
 
     if (strstr(value, "(null)") != NULL) { return NULL; }
+
+#ifdef __ANDROID__
+    if (!cached_value) {
+        cache_key(key, value);
+    }
+#endif
 
     return value;
 }
