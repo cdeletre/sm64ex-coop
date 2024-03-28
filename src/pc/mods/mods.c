@@ -2,6 +2,9 @@
 #include "mods.h"
 #include "mods_utils.h"
 #include "mod_cache.h"
+#ifdef __ANDROID__
+#include "mod_storage.h"
+#endif
 #include "data/dynos.c.h"
 #include "pc/debuglog.h"
 #include "pc/loading.h"
