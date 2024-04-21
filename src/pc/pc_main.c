@@ -382,7 +382,7 @@ int main(int argc, char *argv[]) {
 #endif
     }
 
-#if !defined(WAPI_DXGI)
+#if !defined(WAPI_DXGI) && !defined(RAPI_DUMMY)
     // Start the thread for setting up the game
     if (pthread_mutex_init(&gLoadingThreadMutex, NULL) == 0 && pthread_create(&gLoadingThreadId, NULL, main_game_init, (void*) 1) == 0) {
         gIsThreaded = true;
@@ -391,7 +391,7 @@ int main(int argc, char *argv[]) {
     } else {
 #endif
         main_game_init(NULL); // Failsafe incase threading doesn't work
-#if !defined(WAPI_DXGI)
+#if !defined(WAPI_DXGI) && !defined(RAPI_DUMMY)
     }
     pthread_mutex_destroy(&gLoadingThreadMutex);
 #endif
