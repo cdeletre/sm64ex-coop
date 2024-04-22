@@ -264,9 +264,9 @@ void touch_motion(struct TouchEvent* event) {
                             touch_y = CORRECT_TOUCH_Y(event->y) - before_y;
                         before_x = CORRECT_TOUCH_X(event->x);
                         before_y = CORRECT_TOUCH_Y(event->y);
-                        if ((u16)touch_x < configStickDeadzone / 4)
+                        if ((u16)abs(touch_x) < configStickDeadzone / 4)
                             touch_x = 0;
-                        if ((u16)touch_y < configStickDeadzone / 4)
+                        if ((u16)abs(touch_y) < configStickDeadzone / 4)
                             touch_y = 0;
                         break;
                     case Button:
