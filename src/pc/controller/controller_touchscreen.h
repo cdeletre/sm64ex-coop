@@ -81,7 +81,7 @@ extern s16 touch_x;
 extern s16 touch_y;
 
 extern bool gInTouchConfig, gGamepadActive,
-            configAutohideTouch, configSlideTouch, configElementSnap;
+            configAutohideTouch, configSlideTouch, configPhantomTouch, configElementSnap;
 
 struct TouchEvent {
     // Note to VDavid003: In Xorg, touchID became large!

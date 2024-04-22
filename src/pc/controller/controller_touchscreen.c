@@ -38,7 +38,8 @@ u32 double_tap_timer = 0, double_tap_timer_last = 0;
 bool gInTouchConfig = false,
      gGamepadActive = false,
      configAutohideTouch = false,
-     configSlideTouch = true, 
+     configSlideTouch = true,
+     configPhantomTouch = false,
      configElementSnap = false;
 
 // these are the default screen positions and sizes of the touch controls 
@@ -178,11 +179,10 @@ void touch_down(struct TouchEvent* event) {
             pos = get_pos(&configControlConfigElements[i], 0);
             if (pos.y == HIDE_POS) continue;
             size = configControlConfigElements[i].size[0];
-            if (TRIGGER_DETECT(size)) {
-                ControlConfigElements[i].touchID = event->touchID;
-                if (ControlConfigElements[i].buttonID == SNAP_BUTTON) 
-                    configElementSnap = !configElementSnap;
-            }
+            if (!TRIGGER_DETECT(size)) continue;
+            ControlConfigElements[i].touchID = event->touchID;
+            if (ControlConfigElements[i].buttonID == SNAP_BUTTON)
+                configElementSnap = !configElementSnap;
         }
     }
     // Everything else
@@ -191,32 +191,27 @@ void touch_down(struct TouchEvent* event) {
             pos = get_pos(&configControlElements[i], 0);
             if (pos.y == HIDE_POS) continue;
             size = configControlElements[i].size[0];
+            if (!TRIGGER_DETECT(size)) continue;
             switch (ControlElements[i].type) {
                 case Joystick:
-                    if (TRIGGER_DETECT(size)) {
-                        ControlElements[i].touchID = event->touchID;
-                        lastElementGrabbed = i;
-                        if (!gInTouchConfig) {
-                            ControlElements[i].joyX = CORRECT_TOUCH_X(event->x) - pos.x;
-                            ControlElements[i].joyY = CORRECT_TOUCH_Y(event->y) - pos.y;
-                        }
+                    ControlElements[i].touchID = event->touchID;
+                    lastElementGrabbed = i;
+                    if (!gInTouchConfig) {
+                        ControlElements[i].joyX = CORRECT_TOUCH_X(event->x) - pos.x;
+                        ControlElements[i].joyY = CORRECT_TOUCH_Y(event->y) - pos.y;
                     }
                     break;
                 case Mouse:
-                    if (TRIGGER_DETECT(size)) {
-                        ControlElements[i].touchID = event->touchID;
-                    }
+                    ControlElements[i].touchID = event->touchID;
                     break;
                 case Button:
-                    if (TRIGGER_DETECT(size)) {
-                        ControlElements[i].touchID = event->touchID;
-                        lastElementGrabbed = i;
-                        // messy
-                        if (ControlElements[i].buttonID == CHAT_BUTTON && !gInTouchConfig)
-                            djui_interactable_on_key_down(configKeyChat[0]);
-                        if (ControlElements[i].buttonID == PLAYERLIST_BUTTON && !gInTouchConfig)
-                            djui_interactable_on_key_down(configKeyPlayerList[0]);
-                    }
+                    ControlElements[i].touchID = event->touchID;
+                    lastElementGrabbed = i;
+                    // messy
+                    if (ControlElements[i].buttonID == CHAT_BUTTON && !gInTouchConfig)
+                        djui_interactable_on_key_down(configKeyChat[0]);
+                    if (ControlElements[i].buttonID == PLAYERLIST_BUTTON && !gInTouchConfig)
+                        djui_interactable_on_key_down(configKeyPlayerList[0]);
                     break;
             }
         }
@@ -244,6 +239,12 @@ void touch_motion(struct TouchEvent* event) {
                 s32 x, y;
                 switch (ControlElements[i].type) {
                     case Joystick:
+                        if (configPhantomTouch && !TRIGGER_DETECT(size * 2)) {
+                            ControlElements[i].joyX = 0;
+                            ControlElements[i].joyY = 0;
+                            ControlElements[i].touchID = 0;
+                            break;
+                        }
                         x = CORRECT_TOUCH_X(event->x) - pos.x;
                         y = CORRECT_TOUCH_Y(event->y) - pos.y;
                         if (pos.x + size / 2 < CORRECT_TOUCH_X(event->x))
@@ -258,6 +259,12 @@ void touch_motion(struct TouchEvent* event) {
                         ControlElements[i].joyY = y;
                         break;
                     case Mouse:
+                        if (configPhantomTouch && !TRIGGER_DETECT(size)) {
+                            touch_x = before_x = 0;
+                            touch_y = before_y = 0;
+                            ControlElements[i].touchID = 0;
+                            break;
+                        }
                         if (before_x > 0)
                             touch_x = CORRECT_TOUCH_X(event->x) - before_x;
                         if (before_y > 0)
@@ -270,7 +277,8 @@ void touch_motion(struct TouchEvent* event) {
                             touch_y = 0;
                         break;
                     case Button:
-                        if (ControlElements[i].slideTouch && !TRIGGER_DETECT(size)) {
+                        if ((ControlElements[i].slideTouch && !TRIGGER_DETECT(size)) ||
+                            (configPhantomTouch && !ControlElements[i].slideTouch && !TRIGGER_DETECT(size * 3))) {
                             ControlElements[i].slideTouch = 0;
                             ControlElements[i].touchID = 0;
                         }
@@ -278,10 +286,14 @@ void touch_motion(struct TouchEvent* event) {
                 }
             }
             // slide touch
-            else if (TRIGGER_DETECT(size) &&
+            else if ((TRIGGER_DETECT(size) ||
+                     (configPhantomTouch && TRIGGER_DETECT(size * 2) &&
+                      ControlElements[i].type == Joystick)) &&
                      (ControlElements[TOUCH_MOUSE].touchID != event->touchID ||
                       !configCameraMouse) &&
                      configSlideTouch) {
+                if (configPhantomTouch)
+                    ControlElements[i].touchID = event->touchID;
                 switch (ControlElements[i].type) {
                     case Joystick:
                         break;

@@ -361,6 +361,7 @@ static const struct ConfigOption options[] = {
     {.name = "touch_lua_anchor",         .type = CONFIG_TYPE_BIND, .uintValue = configControlElements[TOUCH_LUA].anchor},
     {.name = "touch_autohide",           .type = CONFIG_TYPE_BOOL, .boolValue = &configAutohideTouch},
     {.name = "touch_slide",              .type = CONFIG_TYPE_BOOL, .boolValue = &configSlideTouch},
+    {.name = "touch_phantom",            .type = CONFIG_TYPE_BOOL, .boolValue = &configPhantomTouch},
     {.name = "touch_snap",               .type = CONFIG_TYPE_BOOL, .boolValue = &configElementSnap},
 #endif
     {.name = "force_4by3",                     .type = CONFIG_TYPE_BOOL,   .boolValue   = &configForce4By3},
