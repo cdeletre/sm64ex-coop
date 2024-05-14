@@ -158,7 +158,7 @@ unzip twisted-adventures.zip -d /storage/emulated/0/com.owokitty.sm64excoop/user
 * Example - [Render96 Characters Recolorable Version](https://sm64ex-coopmods.com/render96-characters/):
 ```bash
 pkg install p7zip
-wget https://sm64ex-coopmods.com/wp-content/uploads/2023/01/Render96_Chars.zip
+wget https://web.archive.org/web/20231228171913if_/https://sm64ex-coopmods.com/wp-content/uploads/2023/01/Render96_Chars.zip
 7z x Render96_Chars.zip
 mkdir -p /storage/emulated/0/com.owokitty.sm64excoop/dynos/packs/
 cp -r Render96_Chars/Render96\ Chars/ /storage/emulated/0/com.owokitty.sm64excoop/dynos/packs/
