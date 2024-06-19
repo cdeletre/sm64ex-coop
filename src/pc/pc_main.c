@@ -299,6 +299,8 @@ void* main_game_init(UNUSED void* arg) {
 
     // load config
     configfile_load();
+    // load demo data
+    demo_data_load();
     configWindow.settings_changed = true;
     if (!djui_language_init(configLanguage)) { snprintf(configLanguage, MAX_CONFIG_STRING, "%s", ""); }
     dynos_packs_init();

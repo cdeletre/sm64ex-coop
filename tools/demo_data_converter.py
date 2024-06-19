@@ -2,6 +2,7 @@
 import sys
 import re
 import json
+import os
 
 def main():
     need_help = False
@@ -24,12 +25,15 @@ def main():
 
     defines = [d.split("=")[0] for d in defines]
     
-    if len(prog_args) < 1 or need_help:
-        print("Usage: {} <demo_data.json> [-D <symbol>] > <demo_data.c>".format(sys.argv[0]))
+    if len(prog_args) < 2 or need_help:
+        print("Usage: {} <demo_data.json> <assets.json> [-D <symbol>] > <demo_data.c>".format(sys.argv[0]))
         sys.exit(0 if need_help else 1)
 
     with open(prog_args[0], "r") as file:
         descr = json.loads(re.sub(r"/\*[\w\W]*?\*/", "", file.read()))
+
+    with open(prog_args[1], "r") as file:
+        assets = json.loads(re.sub(r"/\*[\w\W]*?\*/", "", file.read()))
 
     table = []
     for item in descr["table"]:
@@ -57,10 +61,9 @@ def main():
     structobj.append("},")
 
     for item in demofiles:
-        with open("assets/demos/" + item["name"] + ".bin", "rb") as file:
-            demobytes = file.read()
-        structdef.append("u8 " + item["name"] + "[" + str(len(demobytes)) + "];")
-        structobj.append("{" + ",".join(hex(x) for x in demobytes) + "},")
+        demosize=assets["assets/demos/%s.bin" % item["name"]][0]
+        structdef.append("u8 " + item["name"] + "[" + str(demosize) + "];")
+        structobj.append("{},")
 
     print("#include \"types.h\"")
     print("#include <stddef.h>")
@@ -73,6 +76,34 @@ def main():
     for s in structobj:
         print(s)
     print("};")
+
+    print('')
+
+
+    print('int demo_data_load(){')
+    print('    fs_file_t *file;')
+    print('    int size;')
+    print('    printf("Loading demo data\\n");')
+
+
+
+    for item in demofiles:
+        demoname=item["name"]
+        print('    printf("Loading %s.bin\\n");' % demoname)
+        print('    file = fs_open("./demos/%s.bin");' % demoname)
+        print('    if (file == NULL) {')
+        print('        printf("Cannot open file\\n");')
+        print('    }')
+        print('    if((size = fs_read(file, gDemoInputs.%s, sizeof(gDemoInputs.%s))) != sizeof(gDemoInputs.%s)){' % (demoname,demoname,demoname))
+        print('        printf("Warning: expecting %' + 'd bytes but only got %' + 'd.\\n",sizeof(gDemoInputs.%s),size);' % demoname)
+        print('    }')
+        print('    printf("%' + 'd bytes read\\n", size);')
+        print('    fs_close(file);')
+        print('')
+    
+    print('    printf("Demo data loaded\\n");')
+    print('    return 0;')
+    print('}')
 
 if __name__ == "__main__":
     main()

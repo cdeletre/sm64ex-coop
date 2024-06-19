@@ -476,7 +476,7 @@ else ifeq ($(shell uname -m),arm64)
   DISCORD_SDK := 0
 endif
 
-TARGET_STRING := sm64.$(VERSION).$(GRUCODE)
+TARGET_STRING := sm64ex-coop.$(VERSION).$(GRUCODE)
 # If non-default settings were chosen, disable COMPARE
 ifeq ($(filter $(TARGET_STRING), sm64.jp.f3d_old sm64.us.f3d_old sm64.eu.f3d_new sm64.sh.f3d_new),)
   COMPARE := 0
@@ -1402,10 +1402,22 @@ $(BASEPACK_LST): $(EXE_DEPEND)
 	@$(PRINT) "$(GREEN)Making basepack list.$(NO_COL)\n"
 	@mkdir -p $(BUILD_DIR)/$(BASEDIR)
 	@echo -n > $(BASEPACK_LST)
-	@echo "$(BUILD_DIR)/sound/bank_sets sound/bank_sets" >> $(BASEPACK_LST)
-	@echo "$(BUILD_DIR)/sound/sequences.bin sound/sequences.bin" >> $(BASEPACK_LST)
-	@echo "$(BUILD_DIR)/sound/sound_data.ctl sound/sound_data.ctl" >> $(BASEPACK_LST)
-	@echo "$(BUILD_DIR)/sound/sound_data.tbl sound/sound_data.tbl" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/bank_sets.le.32 sound/bank_sets.le.32" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sequences.bin.le.32 sound/sequences.bin.le.32" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sound_data.ctl.le.32 sound/sound_data.ctl.le.32" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sound_data.tbl.le.32 sound/sound_data.tbl.le.32" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/bank_sets.be.32 sound/bank_sets.be.32" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sequences.bin.be.32 sound/sequences.bin.be.32" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sound_data.ctl.be.32 sound/sound_data.ctl.be.32" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sound_data.tbl.be.32 sound/sound_data.tbl.be.32" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/bank_sets.le.64 sound/bank_sets.le.64" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sequences.bin.le.64 sound/sequences.bin.le.64" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sound_data.ctl.le.64 sound/sound_data.ctl.le.64" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sound_data.tbl.le.64 sound/sound_data.tbl.le.64" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/bank_sets.be.64 sound/bank_sets.be.64" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sequences.bin.be.64 sound/sequences.bin.be.64" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sound_data.ctl.be.64 sound/sound_data.ctl.be.64" >> $(BASEPACK_LST)
+	@echo "$(BUILD_DIR)/sound/sound_data.tbl.be.64 sound/sound_data.tbl.be.64" >> $(BASEPACK_LST)
 	@$(foreach f, $(wildcard $(SKYTILE_DIR)/*), echo $(f) gfx/$(f:$(BUILD_DIR)/%=%) >> $(BASEPACK_LST);)
 	@find actors -name \*.png -exec echo "{} gfx/{}" >> $(BASEPACK_LST) \;
 	@find levels -name \*.png -exec echo "{} gfx/{}" >> $(BASEPACK_LST) \;
@@ -1731,7 +1743,9 @@ $(BUILD_DIR)/assets/mario_anim_data.c: $(wildcard assets/anims/*.inc.c)
 # Generate demo input data
 $(BUILD_DIR)/assets/demo_data.c: assets/demo_data.json $(wildcard assets/demos/*.bin)
 	@$(PRINT) "$(GREEN)Generating demo data $(NO_COL)\n"
-	$(V)$(PYTHON) $(TOOLS_DIR)/demo_data_converter.py assets/demo_data.json $(DEF_INC_CFLAGS) > $@
+	$(V)$(PYTHON) $(TOOLS_DIR)/demo_data_converter.py assets/demo_data.json assets.json $(DEF_INC_CFLAGS) > $@
+	@mkdir -p $(BUILD_DIR)/$(BASEDIR)/demos
+	@cp assets/demos/*.bin $(BUILD_DIR)/$(BASEDIR)/demos;
 
 # Encode in-game text strings
 $(BUILD_DIR)/include/text_strings.h: include/text_strings.h.in
