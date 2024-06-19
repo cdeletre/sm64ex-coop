@@ -1506,6 +1506,8 @@ ifeq ($(COMPILER),gcc)
   $(BUILD_DIR)/lib/src/math/%.o: CFLAGS += -fno-builtin
 endif
 
+$(BUILD_DIR)/actors/zcustom0.o: $(BUILD_DIR)/actors/wario_cap/custom_wario_cap_logo.rgba16.inc.c
+
 ifeq ($(VERSION),eu)
   TEXT_DIRS := text/de text/us text/fr
 
